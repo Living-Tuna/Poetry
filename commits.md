@@ -1,0 +1,2 @@
+- `da6b057` Initial commit: poetry theme app with Supabase auth, multi-step signup, slide-down profile panel, theme system, and GitHub Actions deployment workflow
+- `1b32476` Strip backend dependencies: signup uses only Supabase Auth with user_metadata, no profiles table or Edge Functions. Forgot-password uses localStorage fallback.

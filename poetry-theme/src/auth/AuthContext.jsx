@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { supabase, hashAnswer } from '../supabase/client'
 
 const AuthContext = createContext(null)
@@ -6,6 +6,7 @@ const AuthContext = createContext(null)
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
+  const lastSignup = useRef(0)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -47,6 +48,10 @@ export function AuthProvider({ children }) {
   }, [])
 
   const signup = useCallback(async (username, password, name, question, answer) => {
+    const now = Date.now()
+    if (now - lastSignup.current < 10000) return { ok: false, error: 'Please wait a few seconds before trying again.' }
+    lastSignup.current = now
+
     const u = username.toLowerCase().trim()
     const email = `${u}@poetry.app`
     const answerHash = await hashAnswer(answer)
@@ -72,6 +77,9 @@ export function AuthProvider({ children }) {
       },
     })
     if (error) {
+      if (data?.user) return { ok: true }
+      const isRateLimit = error.message?.includes('429') || error.message?.includes('Too Many Requests') || error.message?.includes('rate limit')
+      if (isRateLimit) return { ok: false, error: 'Too many signups. Please wait 1 minute and try again.' }
       if (error.message.includes('already registered')) return { ok: false, error: 'Username already taken' }
       return { ok: false, error: error.message }
     }
