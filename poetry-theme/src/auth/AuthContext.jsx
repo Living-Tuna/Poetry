@@ -10,10 +10,11 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
+        const meta = session.user.user_metadata || {}
         setUser({
           id: session.user.id,
-          username: session.user.user_metadata?.username || '',
-          name: session.user.user_metadata?.name || session.user.user_metadata?.username || 'User',
+          username: meta.username || '',
+          name: meta.name || meta.display_name || meta.username || 'User',
         })
       }
       setLoading(false)
@@ -21,10 +22,11 @@ export function AuthProvider({ children }) {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
+        const meta = session.user.user_metadata || {}
         setUser({
           id: session.user.id,
-          username: session.user.user_metadata?.username || '',
-          name: session.user.user_metadata?.name || session.user.user_metadata?.username || 'User',
+          username: meta.username || '',
+          name: meta.name || meta.display_name || meta.username || 'User',
         })
       } else {
         setUser(null)
@@ -45,37 +47,34 @@ export function AuthProvider({ children }) {
   }, [])
 
   const signup = useCallback(async (username, password, name, question, answer) => {
-    const email = `${username.toLowerCase().trim()}@poetry.app`
+    const u = username.toLowerCase().trim()
+    const email = `${u}@poetry.app`
     const answerHash = await hashAnswer(answer)
 
-    const { data: authData, error: authError } = await supabase.auth.signUp({
+    try {
+      localStorage.setItem(`poetry_security_${u}`, JSON.stringify({
+        question: question.trim(),
+        answerHash,
+      }))
+    } catch {}
+
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        data: { username: username.toLowerCase().trim(), name: name.trim() },
+        data: {
+          username: u,
+          name: name.trim(),
+          display_name: name.trim(),
+          security_question: question.trim(),
+          security_answer_hash: answerHash,
+        },
       },
     })
-    if (authError) return { ok: false, error: authError.message }
-    if (!authData.user) return { ok: false, error: 'Signup failed' }
-
-    const { error: profileError } = await supabase.from('profiles').insert({
-      id: authData.user.id,
-      username: username.toLowerCase().trim(),
-      display_name: name.trim(),
-      security_question: question.trim(),
-      security_answer_hash: answerHash,
-    })
-    if (profileError) {
-      if (profileError.message?.includes('duplicate key') || profileError.code === '23505') {
-        return { ok: false, error: 'Username already taken' }
-      }
-      if (profileError.message?.includes('relation') || profileError.message?.includes('does not exist')) {
-        // Table not deployed yet — auth user was created, report success
-        return { ok: true, note: 'profile_pending' }
-      }
-      return { ok: false, error: 'Failed to create profile' }
+    if (error) {
+      if (error.message.includes('already registered')) return { ok: false, error: 'Username already taken' }
+      return { ok: false, error: error.message }
     }
-
     return { ok: true }
   }, [])
 
@@ -84,38 +83,35 @@ export function AuthProvider({ children }) {
     setUser(null)
   }, [])
 
-  const checkUsername = useCallback(async (username) => {
-    const { data, error } = await supabase.functions.invoke('check-username', {
-      body: { username },
-    })
-    if (error) {
-      return { available: null, suggestions: [], error: error.message }
-    }
-    return { available: data.available ?? false, suggestions: data.suggestions ?? [] }
+  const checkUsername = useCallback(async (_username) => {
+    return { available: null, suggestions: [] }
   }, [])
 
   const getUserSecurityQuestion = useCallback(async (username) => {
-    const { data, error } = await supabase.functions.invoke('forgot-password', {
-      body: { action: 'get_question', username },
-    })
-    if (error || !data?.question) return null
-    return data.question
+    try {
+      const stored = localStorage.getItem(`poetry_security_${username.toLowerCase().trim()}`)
+      if (stored) {
+        const parsed = JSON.parse(stored)
+        return parsed.question || null
+      }
+    } catch {}
+    return null
   }, [])
 
   const verifySecurityAnswer = useCallback(async (username, answer) => {
-    const { data, error } = await supabase.functions.invoke('forgot-password', {
-      body: { action: 'verify_answer', username, answer },
-    })
-    if (error) return { ok: false, error: error.message || 'Verification failed' }
-    return { ok: data.ok ?? false }
+    const hash = await hashAnswer(answer)
+    try {
+      const stored = localStorage.getItem(`poetry_security_${username.toLowerCase().trim()}`)
+      if (!stored) return { ok: false, error: 'Security data not found' }
+      const parsed = JSON.parse(stored)
+      return { ok: parsed.answerHash === hash }
+    } catch {
+      return { ok: false, error: 'Security data not found' }
+    }
   }, [])
 
-  const resetPassword = useCallback(async (username, answer, newPassword) => {
-    const { data, error } = await supabase.functions.invoke('forgot-password', {
-      body: { action: 'verify_and_reset', username, answer, new_password: newPassword },
-    })
-    if (error) return { ok: false, error: error.message || 'Reset failed' }
-    return { ok: data.ok ?? false }
+  const resetPassword = useCallback(async (_username, _answer, _newPassword) => {
+    return { ok: false, error: 'PASSWORD_RESET_NEEDS_BACKEND' }
   }, [])
 
   const ctx = useMemo(() => ({

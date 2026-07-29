@@ -32,7 +32,7 @@ const btnWhite = {
 
 export default function PoetryDashboard() {
   const { user, login, logout, signup, checkUsername,
-          getUserSecurityQuestion, verifySecurityAnswer, resetPassword } = useAuth()
+          getUserSecurityQuestion, resetPassword } = useAuth()
   const { themeId } = useTheme()
   const {
     resetQueue, total, favorites, clearFavorites, fullscreen,
@@ -134,8 +134,13 @@ export default function PoetryDashboard() {
     setABusy(true)
     const res = await resetPassword(aUsername.trim(), aAnswer.trim(), aNewPass)
     setABusy(false)
-    if (!res.ok) setAError(res.error)
-    else { setAuthMode('login'); setAError('Password reset. Sign in with your new password.'); setAPassword('') }
+    if (!res.ok) {
+      if (res.error === 'PASSWORD_RESET_NEEDS_BACKEND') {
+        setAError('Password reset requires Edge Functions to be deployed. Use Supabase Dashboard for now.')
+      } else {
+        setAError(res.error)
+      }
+    } else { setAuthMode('login'); setAError('Password reset. Sign in with your new password.'); setAPassword('') }
   }
 
   // ── Watch editRequest ──
