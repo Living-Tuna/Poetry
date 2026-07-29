@@ -1,0 +1,8 @@
+dist/
+node_modules/
+supabase/
+confidentials/
+.*
+!/.gitignore
+!.gitignore
+!/.github
