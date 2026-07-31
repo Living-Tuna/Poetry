@@ -2,7 +2,18 @@ import { supabase, hashAnswer } from '../supabase/client'
 
 async function callFunction(name, body) {
   const { data, error } = await supabase.functions.invoke(name, { body })
-  if (error) throw error
+  if (error) {
+    let detail = error.message
+    try {
+      if (error.context && typeof error.context.json === 'function') {
+        const res = await error.context.json()
+        if (res?.error) detail = res.error
+      }
+    } catch {}
+    const e = new Error(detail)
+    e.context = error
+    throw e
+  }
   return data
 }
 
@@ -49,10 +60,10 @@ export async function apiSignup(username, password, name, question, answer, coun
     },
   })
   if (error) {
-    if (data?.user) { console.log('[API] signup partial (user created despite error)'); return { ok: true } }
     const isRateLimit = error.message?.includes('429') || error.message?.includes('Too Many Requests') || error.message?.includes('rate limit')
     if (isRateLimit) return { ok: false, error: 'Too many signups. Please wait 1 minute and try again.' }
     if (error.message.includes('already registered')) return { ok: false, error: 'Username already taken' }
+    if (data?.user) { console.log('[API] signup partial (user created despite error)'); return { ok: true } }
     console.log('[API] signup error:', error.message)
     return { ok: false, error: error.message }
   }

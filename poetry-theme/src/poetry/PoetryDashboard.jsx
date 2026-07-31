@@ -138,7 +138,7 @@ export default function PoetryDashboard() {
     setABusy(true)
     const res = await checkUsername(u)
     setABusy(false)
-    if (res.available === null) { setSignupStep(1); return }
+    if (res.available === null) { setAError('Could not check username — please try again.'); return }
     if (!res.available) { setAError('Username taken — try one below'); setASuggestions(res.suggestions ?? []); return }
     setASuggestions([])
     setSignupStep(1)
