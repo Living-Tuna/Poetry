@@ -24,3 +24,8 @@ dist-ssr
 *.sw?
 
 test-auth.mjs
+.env
+server/.env
+server
+dev.ps1
+

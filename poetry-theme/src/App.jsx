@@ -1,8 +1,11 @@
+import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './auth/AuthContext'
 import PoetryDashboard from './poetry/PoetryDashboard'
+import LanguageOnboarding from './poetry/components/LanguageOnboarding'
 
 export default function App() {
   const { loading } = useAuth()
+  const savedLang = localStorage.getItem('poetry_lang')
 
   if (loading) {
     return (
@@ -18,5 +21,19 @@ export default function App() {
     )
   }
 
-  return <PoetryDashboard />
+  if (!savedLang) {
+    return <LanguageOnboarding />
+  }
+
+  return (
+    <Routes>
+      <Route path="/" element={<Navigate to={`/${savedLang}`} replace />} />
+      <Route path="/shelf" element={<PoetryDashboard />} />
+      <Route path="/blend" element={<PoetryDashboard />} />
+      <Route path="/inbox" element={<PoetryDashboard />} />
+      <Route path="/notifications" element={<PoetryDashboard />} />
+      <Route path="/:view" element={<PoetryDashboard />} />
+      <Route path="*" element={<Navigate to={`/${savedLang}`} replace />} />
+    </Routes>
+  )
 }

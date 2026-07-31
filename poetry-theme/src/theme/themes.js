@@ -3,6 +3,8 @@ export const themes = {
     id: 'spring',
     label: 'Spring',
     emoji: '🌸',
+    buttonRadius: '12px',
+    bgPattern: 'dots',
     css: {
       '--tp-primary': '#ffffff',
       '--tp-secondary': '#16a34a',
@@ -22,6 +24,8 @@ export const themes = {
     id: 'ocean',
     label: 'Ocean',
     emoji: '🌊',
+    buttonRadius: '9999px',
+    bgPattern: 'waves',
     css: {
       '--tp-primary': '#ffffff',
       '--tp-secondary': '#2563eb',
@@ -41,6 +45,8 @@ export const themes = {
     id: 'rose',
     label: 'Rose',
     emoji: '🌹',
+    buttonRadius: '8px',
+    bgPattern: 'none',
     css: {
       '--tp-primary': '#ffffff',
       '--tp-secondary': '#e11d48',
@@ -60,6 +66,8 @@ export const themes = {
     id: 'lavender',
     label: 'Lavender',
     emoji: '💜',
+    buttonRadius: '12px',
+    bgPattern: 'grid',
     css: {
       '--tp-primary': '#ffffff',
       '--tp-secondary': '#7c3aed',
@@ -79,6 +87,8 @@ export const themes = {
     id: 'sunset',
     label: 'Sunset',
     emoji: '🌅',
+    buttonRadius: '6px',
+    bgPattern: 'none',
     css: {
       '--tp-primary': '#ffffff',
       '--tp-secondary': '#ea580c',
@@ -98,6 +108,8 @@ export const themes = {
     id: 'midnight',
     label: 'Midnight',
     emoji: '🌙',
+    buttonRadius: '4px',
+    bgPattern: 'stars',
     css: {
       '--tp-primary': '#1e293b',
       '--tp-secondary': '#38bdf8',
@@ -117,6 +129,8 @@ export const themes = {
     id: 'forest',
     label: 'Forest',
     emoji: '🌲',
+    buttonRadius: '9999px',
+    bgPattern: 'dots',
     css: {
       '--tp-primary': '#ffffff',
       '--tp-secondary': '#059669',
@@ -136,6 +150,8 @@ export const themes = {
     id: 'cherry',
     label: 'Cherry Blossom',
     emoji: '🎀',
+    buttonRadius: '9999px',
+    bgPattern: 'none',
     css: {
       '--tp-primary': '#ffffff',
       '--tp-secondary': '#db2777',
@@ -151,6 +167,90 @@ export const themes = {
       '--tp-accent': '#fde68a',
     },
   },
+  candy: {
+    id: 'candy',
+    label: 'Candy',
+    emoji: '❤️',
+    buttonRadius: '9999px',
+    bgPattern: 'dots',
+    css: {
+      '--tp-primary': '#ffffff',
+      '--tp-secondary': '#f43f5e',
+      '--tp-tertiary': '#fbbf24',
+      '--tp-bg': '#fff1f2',
+      '--tp-surface': '#ffffff',
+      '--tp-text': '#9f1239',
+      '--tp-text-secondary': '#be185d',
+      '--tp-border': '#ffe4e6',
+      '--tp-header-bg': '#f43f5e',
+      '--tp-header-text': '#ffffff',
+      '--tp-card-shadow': '0 4px 20px rgba(244, 63, 94, 0.12)',
+      '--tp-accent': '#fbbf24',
+    },
+  },
+  space: {
+    id: 'space',
+    label: 'Space',
+    emoji: '🚀',
+    buttonRadius: '4px',
+    bgPattern: 'stars',
+    css: {
+      '--tp-primary': '#1e1b4b',
+      '--tp-secondary': '#a78bfa',
+      '--tp-tertiary': '#f59e0b',
+      '--tp-bg': '#0f0d1a',
+      '--tp-surface': '#1e1b4b',
+      '--tp-text': '#f5f3ff',
+      '--tp-text-secondary': '#8b83ba',
+      '--tp-border': '#2e2a5e',
+      '--tp-header-bg': '#0f0d1a',
+      '--tp-header-text': '#a78bfa',
+      '--tp-card-shadow': '0 4px 20px rgba(167, 139, 250, 0.1)',
+      '--tp-accent': '#f59e0b',
+    },
+  },
+  gold: {
+    id: 'gold',
+    label: 'Gold',
+    emoji: '👑',
+    buttonRadius: '9999px',
+    bgPattern: 'none',
+    css: {
+      '--tp-primary': '#ffffff',
+      '--tp-secondary': '#d97706',
+      '--tp-tertiary': '#fde68a',
+      '--tp-bg': '#fffbeb',
+      '--tp-surface': '#ffffff',
+      '--tp-text': '#78350f',
+      '--tp-text-secondary': '#92400e',
+      '--tp-border': '#fde68a',
+      '--tp-header-bg': '#d97706',
+      '--tp-header-text': '#ffffff',
+      '--tp-card-shadow': '0 4px 20px rgba(217, 119, 6, 0.15)',
+      '--tp-accent': '#fde68a',
+    },
+  },
+  sky: {
+    id: 'sky',
+    label: 'Sky',
+    emoji: '☁️',
+    buttonRadius: '8px',
+    bgPattern: 'waves',
+    css: {
+      '--tp-primary': '#ffffff',
+      '--tp-secondary': '#0ea5e9',
+      '--tp-tertiary': '#a7f3d0',
+      '--tp-bg': '#f0f9ff',
+      '--tp-surface': '#ffffff',
+      '--tp-text': '#0c4a6e',
+      '--tp-text-secondary': '#64748b',
+      '--tp-border': '#e0f2fe',
+      '--tp-header-bg': '#0ea5e9',
+      '--tp-header-text': '#ffffff',
+      '--tp-card-shadow': '0 4px 20px rgba(14, 165, 233, 0.12)',
+      '--tp-accent': '#a7f3d0',
+    },
+  },
 }
 
 export const themeList = Object.values(themes)
@@ -162,4 +262,6 @@ export function applyThemeVars(root, themeId) {
   Object.entries(vars).forEach(([key, val]) => {
     root.style.setProperty(key, val)
   })
+  root.style.setProperty('--tp-btn-radius', theme.buttonRadius || '12px')
+  root.style.setProperty('--tp-bg-pattern', theme.bgPattern || 'none')
 }

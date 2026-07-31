@@ -1,5 +1,9 @@
 import { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react'
-import { supabase, hashAnswer } from '../supabase/client'
+import { supabase } from '../supabase/client'
+import {
+  apiLogin, apiSignup, apiCheckUsername,
+  apiGetSecurityQuestion, apiVerifyAnswer, apiResetPassword,
+} from '../api/auth'
 
 const AuthContext = createContext(null)
 
@@ -16,6 +20,9 @@ export function AuthProvider({ children }) {
           id: session.user.id,
           username: meta.username || '',
           name: meta.name || meta.display_name || meta.username || 'User',
+          country: meta.country || '',
+          state: meta.state || '',
+          zip: meta.zip || '',
         })
       }
       setLoading(false)
@@ -28,6 +35,9 @@ export function AuthProvider({ children }) {
           id: session.user.id,
           username: meta.username || '',
           name: meta.name || meta.display_name || meta.username || 'User',
+          country: meta.country || '',
+          state: meta.state || '',
+          zip: meta.zip || '',
         })
       } else {
         setUser(null)
@@ -38,52 +48,14 @@ export function AuthProvider({ children }) {
   }, [])
 
   const login = useCallback(async (username, password) => {
-    const email = `${username.toLowerCase().trim()}@poetry.app`
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) {
-      if (error.message.includes('Invalid login')) return { ok: false, error: 'Invalid username or password' }
-      return { ok: false, error: error.message }
-    }
-    return { ok: true }
+    return apiLogin(username, password)
   }, [])
 
-  const signup = useCallback(async (username, password, name, question, answer) => {
+  const signup = useCallback(async (username, password, name, question, answer, country, state, zip) => {
     const now = Date.now()
     if (now - lastSignup.current < 10000) return { ok: false, error: 'Please wait a few seconds before trying again.' }
     lastSignup.current = now
-
-    const u = username.toLowerCase().trim()
-    const email = `${u}@poetry.app`
-    const answerHash = await hashAnswer(answer)
-
-    try {
-      localStorage.setItem(`poetry_security_${u}`, JSON.stringify({
-        question: question.trim(),
-        answerHash,
-      }))
-    } catch {}
-
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          username: u,
-          name: name.trim(),
-          display_name: name.trim(),
-          security_question: question.trim(),
-          security_answer_hash: answerHash,
-        },
-      },
-    })
-    if (error) {
-      if (data?.user) return { ok: true }
-      const isRateLimit = error.message?.includes('429') || error.message?.includes('Too Many Requests') || error.message?.includes('rate limit')
-      if (isRateLimit) return { ok: false, error: 'Too many signups. Please wait 1 minute and try again.' }
-      if (error.message.includes('already registered')) return { ok: false, error: 'Username already taken' }
-      return { ok: false, error: error.message }
-    }
-    return { ok: true }
+    return apiSignup(username, password, name, question, answer, country, state, zip)
   }, [])
 
   const logout = useCallback(async () => {
@@ -91,44 +63,13 @@ export function AuthProvider({ children }) {
     setUser(null)
   }, [])
 
-  const checkUsername = useCallback(async (_username) => {
-    return { available: null, suggestions: [] }
-  }, [])
-
-  const getUserSecurityQuestion = useCallback(async (username) => {
-    try {
-      const stored = localStorage.getItem(`poetry_security_${username.toLowerCase().trim()}`)
-      if (stored) {
-        const parsed = JSON.parse(stored)
-        return parsed.question || null
-      }
-    } catch {}
-    return null
-  }, [])
-
-  const verifySecurityAnswer = useCallback(async (username, answer) => {
-    const hash = await hashAnswer(answer)
-    try {
-      const stored = localStorage.getItem(`poetry_security_${username.toLowerCase().trim()}`)
-      if (!stored) return { ok: false, error: 'Security data not found' }
-      const parsed = JSON.parse(stored)
-      return { ok: parsed.answerHash === hash }
-    } catch {
-      return { ok: false, error: 'Security data not found' }
-    }
-  }, [])
-
-  const resetPassword = useCallback(async (_username, _answer, _newPassword) => {
-    return { ok: false, error: 'PASSWORD_RESET_NEEDS_BACKEND' }
-  }, [])
-
   const ctx = useMemo(() => ({
     user, loading, login, signup, logout,
-    getUserSecurityQuestion, verifySecurityAnswer, resetPassword,
-    checkUsername,
-  }), [user, loading, login, signup, logout,
-      getUserSecurityQuestion, verifySecurityAnswer, resetPassword,
-      checkUsername])
+    getUserSecurityQuestion: apiGetSecurityQuestion,
+    verifySecurityAnswer: apiVerifyAnswer,
+    resetPassword: apiResetPassword,
+    checkUsername: apiCheckUsername,
+  }), [user, loading, login, signup, logout])
 
   return (
     <AuthContext.Provider value={ctx}>

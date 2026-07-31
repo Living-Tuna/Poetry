@@ -1,68 +1,113 @@
 import { createContext, useContext, useState, useCallback, useMemo, useRef, useEffect } from 'react'
-import { poems as allPoems } from '../data/poems'
 import { useAuth } from '../auth/AuthContext'
+import { apiFetchAllPoems, apiAddPoem, apiUpdatePoem, apiDeletePoem } from '../api/poems'
+import { apiFetchUserPoems } from '../api/profile'
 
-const FAV_KEY = 'poetry-favorites'
 const MY_POEMS_KEY = 'poetry-my-poems'
 const RECENT_KEY = 'poetry-recently-viewed'
 const MAX_RECENT = 8
 
-function loadFavorites() {
-  try { return JSON.parse(localStorage.getItem(FAV_KEY)) || [] } catch { return [] }
+function prefixedKey(prefix, username) {
+  return username ? `${prefix}-${username}` : prefix
 }
 
-function loadMyPoems(username) {
-  try { return JSON.parse(localStorage.getItem(`${MY_POEMS_KEY}-${username}`)) || [] } catch { return [] }
+function loadArray(key) {
+  try { return JSON.parse(localStorage.getItem(key)) || [] } catch { return [] }
 }
 
-function saveMyPoems(username, list) {
-  localStorage.setItem(`${MY_POEMS_KEY}-${username}`, JSON.stringify(list))
-}
-
-function loadRecentlyViewed(username) {
-  try { return JSON.parse(localStorage.getItem(`${RECENT_KEY}-${username}`)) || [] } catch { return [] }
-}
-
-function saveRecentlyViewed(username, list) {
-  localStorage.setItem(`${RECENT_KEY}-${username}`, JSON.stringify(list))
+function saveArray(key, arr) {
+  localStorage.setItem(key, JSON.stringify(arr))
 }
 
 const PoetryContext = createContext(null)
 
 export function PoetryProvider({ children }) {
   const { user } = useAuth()
-  const [queue, setQueue] = useState(() => {
-    const start = Math.floor(Math.random() * Math.max(0, allPoems.length - 3))
-    return allPoems.slice(start, start + 3)
-  })
+  const [allPoems, setAllPoems] = useState([])
+  const [queue, setQueue] = useState([])
   const [index, setIndex] = useState(0)
   const [expanded, setExpanded] = useState(false)
   const [fullscreen, setFullscreen] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [favorites, setFavorites] = useState(loadFavorites)
+  const [loading, setLoading] = useState(true)
+  const [favorites, setFavorites] = useState([])
   const [myPoems, setMyPoems] = useState([])
   const [recentlyViewed, setRecentlyViewed] = useState([])
   const [editRequest, setEditRequest] = useState(null)
-  const loadedIds = useRef(new Set(queue.map((p) => p.id)))
-  const allRef = useRef(allPoems)
+  const [editOnOpen, setEditOnOpen] = useState(false)
+  const [myPoemsCachedOnly, setMyPoemsCachedOnly] = useState(true)
+  const loadedIds = useRef(new Set())
+  const allRef = useRef([])
 
   useEffect(() => {
-    localStorage.setItem(FAV_KEY, JSON.stringify(favorites))
-  }, [favorites])
-
-  useEffect(() => {
-    if (user) {
-      setMyPoems(loadMyPoems(user.username))
-      setRecentlyViewed(loadRecentlyViewed(user.username))
+    let cancelled = false
+    async function load() {
+      try {
+        const data = await apiFetchAllPoems()
+        if (cancelled) return
+        setAllPoems(data)
+        allRef.current = data
+        if (data.length > 0) {
+          const maxStart = Math.max(0, data.length - 3)
+          const start = Math.min(Math.floor(Math.random() * maxStart), maxStart)
+          const slice = data.slice(start, start + 3)
+          loadedIds.current = new Set(slice.map((p) => p.id))
+          setQueue(slice)
+        }
+      } catch (err) {
+        console.error('Failed to load poems from Supabase:', err)
+      }
+      if (!cancelled) setLoading(false)
     }
+    load()
+    return () => { cancelled = true }
+  }, [])
+
+  function dedupe(arr) {
+    const seen = new Set()
+    return arr.filter((item) => {
+      const key = String(item?.id ?? '')
+      if (!key || seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
+  }
+
+  useEffect(() => {
+    if (!user) { setMyPoems([]); setRecentlyViewed([]); setFavorites([]); return }
+    setMyPoems(loadArray(prefixedKey(MY_POEMS_KEY, user.username)))
+    setRecentlyViewed(dedupe(loadArray(prefixedKey(RECENT_KEY, user.username))))
+    setFavorites(loadArray(prefixedKey('poetry-favorites', user.username)))
+    loadUserPoems()
   }, [user])
+
+  useEffect(() => {
+    if (!user) return
+    saveArray(prefixedKey('poetry-favorites', user.username), favorites)
+  }, [favorites, user])
+
+  async function loadUserPoems() {
+    if (!user) return
+    try {
+      const data = await apiFetchUserPoems(user.id)
+      if (data) {
+        setMyPoemsCachedOnly(false)
+        setMyPoems((prev) => {
+          const sbIds = new Set(data.map((p) => String(p.id)))
+          const merged = [...data, ...prev.filter((p) => !sbIds.has(String(p.id)))]
+          const seen = new Set()
+          return merged.filter((p) => { const k = String(p.id); if (seen.has(k)) return false; seen.add(k); return true })
+        })
+      }
+    } catch { setMyPoemsCachedOnly(true) }
+  }
 
   const addToRecentlyViewed = useCallback((poem) => {
     if (!poem || !user) return
     setRecentlyViewed((prev) => {
-      const filtered = prev.filter((p) => p.id !== poem.id)
+      const id = String(poem.id)
+      const filtered = prev.filter((p) => String(p.id) !== id)
       const updated = [poem, ...filtered].slice(0, MAX_RECENT)
-      saveRecentlyViewed(user.username, updated)
+      saveArray(prefixedKey(RECENT_KEY, user.username), updated)
       return updated
     })
   }, [user])
@@ -76,6 +121,15 @@ export function PoetryProvider({ children }) {
     return myPoems.some((p) => p.id === poem.id)
   }, [myPoems])
 
+  const enqueueNext = useCallback(() => {
+    if (queue.length >= allRef.current.length) return
+    const next = allRef.current.find((p) => !loadedIds.current.has(p.id))
+    if (next) {
+      loadedIds.current.add(next.id)
+      setQueue((prev) => [...prev, next])
+    }
+  }, [queue.length])
+
   const swipeRight = useCallback(() => {
     if (index < queue.length - 1) {
       setIndex((i) => i + 1)
@@ -83,18 +137,12 @@ export function PoetryProvider({ children }) {
       return
     }
     if (queue.length >= allRef.current.length) return
-    setLoading(true)
     const next = allRef.current.find((p) => !loadedIds.current.has(p.id))
     if (next) {
       loadedIds.current.add(next.id)
       setQueue((prev) => [...prev, next])
-      setTimeout(() => {
-        setIndex((i) => i + 1)
-        setExpanded(false)
-        setLoading(false)
-      }, 100)
-    } else {
-      setLoading(false)
+      setIndex((i) => i + 1)
+      setExpanded(false)
     }
   }, [index, queue.length])
 
@@ -106,8 +154,10 @@ export function PoetryProvider({ children }) {
   }, [index])
 
   const resetQueue = useCallback(() => {
-    const start = Math.floor(Math.random() * Math.max(0, allRef.current.length - 3))
-    const fresh = allRef.current.slice(start, start + 3)
+    const poems = allRef.current
+    if (!poems.length) return
+    const start = Math.min(Math.floor(Math.random() * Math.max(0, poems.length - 3)), poems.length - 3)
+    const fresh = poems.slice(start, start + 3)
     loadedIds.current = new Set(fresh.map((p) => p.id))
     setQueue(fresh)
     setIndex(0)
@@ -127,49 +177,71 @@ export function PoetryProvider({ children }) {
     addToRecentlyViewed(poem)
   }, [queue, addToRecentlyViewed])
 
-  const addMyPoem = useCallback((poem) => {
+  const addMyPoem = useCallback(async (poem) => {
     if (!user) return
+    let saved = poem
+    try {
+      saved = await apiAddPoem(poem, user.id, user.username)
+    } catch { }
     setMyPoems((prev) => {
-      const updated = [poem, ...prev]
-      saveMyPoems(user.username, updated)
+      const updated = [saved, ...prev]
+      saveArray(prefixedKey(MY_POEMS_KEY, user.username), updated)
       return updated
     })
   }, [user])
 
-  const updateMyPoem = useCallback((id, data) => {
+  const updateMyPoem = useCallback(async (id, data) => {
     if (!user) return
+    if (typeof id === 'string' && id.length > 20) {
+      try {
+        await apiUpdatePoem(id, data.title, data.content, data.categories, data.language)
+      } catch { }
+    }
+    const allIdx = allRef.current.findIndex((p) => p.id === id)
+    if (allIdx !== -1) {
+      allRef.current[allIdx] = { ...allRef.current[allIdx], ...data }
+      setAllPoems([...allRef.current])
+    }
     setMyPoems((prev) => {
       const updated = prev.map((p) => (p.id === id ? { ...p, ...data } : p))
-      saveMyPoems(user.username, updated)
+      saveArray(prefixedKey(MY_POEMS_KEY, user.username), updated)
       return updated
     })
   }, [user])
 
-  const deleteMyPoem = useCallback((id) => {
+  const deleteMyPoem = useCallback(async (id) => {
     if (!user) return
+    if (typeof id === 'string' && id.length > 20) {
+      try {
+        await apiDeletePoem(id)
+      } catch { }
+    }
     setMyPoems((prev) => {
       const updated = prev.filter((p) => p.id !== id)
-      saveMyPoems(user.username, updated)
+      saveArray(prefixedKey(MY_POEMS_KEY, user.username), updated)
       return updated
     })
   }, [user])
 
-  const toggleFavorite = useCallback((poemId, lineText) => {
-    const key = `${poemId}::${lineText}`
+  const upsertFavorite = useCallback((poemId, favorite) => {
     setFavorites((prev) => {
-      const exists = prev.find((f) => f.key === key)
-      if (exists) return prev.filter((f) => f.key !== key)
       const poem = allRef.current.find((p) => p.id === poemId) || myPoems.find((p) => p.id === poemId)
-      return [...prev, {
-        key,
+      const existing = prev.find((f) => f.key === favorite.key)
+      const next = {
+        ...favorite,
         poemId,
-        poemTitle: poem?.title || '',
-        author: poem?.author || '',
-        lineText,
-        date: Date.now(),
-      }]
+        poemTitle: favorite.poemTitle || poem?.title || '',
+        author: favorite.author || poem?.author || '',
+        date: existing?.date || Date.now(),
+      }
+      if (existing) return prev.map((f) => (f.key === favorite.key ? next : f))
+      return [...prev, next]
     })
   }, [myPoems])
+
+  const removeFavorite = useCallback((key) => {
+    setFavorites((prev) => prev.filter((f) => f.key !== key))
+  }, [])
 
   const isFavorite = useCallback((poemId, lineText) => {
     const key = `${poemId}::${lineText}`
@@ -179,23 +251,26 @@ export function PoetryProvider({ children }) {
   const clearFavorites = useCallback(() => setFavorites([]), [])
 
   const ctx = useMemo(() => ({
-    currentPoem, queue, index, expanded, loading, fullscreen,
+    currentPoem, queue, index, expanded, loading: loading || !allPoems.length, fullscreen,
     canSwipeLeft, canSwipeRight,
-    swipeRight, swipeLeft, setExpanded, resetQueue,
+    swipeRight, swipeLeft, enqueueNext, setExpanded, resetQueue,
     openFullscreen, closeFullscreen, navigateToPoem,
-    favorites, toggleFavorite, isFavorite, clearFavorites,
+    favorites, upsertFavorite, removeFavorite, isFavorite, clearFavorites,
     total: allRef.current.length,
+    allPoems: allRef.current,
     myPoems, addMyPoem, updateMyPoem, deleteMyPoem, isUserPoem,
-    editRequest, setEditRequest,
+    editRequest, setEditRequest, editOnOpen, setEditOnOpen,
     recentlyViewed, addToRecentlyViewed,
-  }), [currentPoem, queue, index, expanded, loading, fullscreen,
+    myPoemsCachedOnly,
+  }), [currentPoem, queue, index, expanded, loading, allPoems, fullscreen,
       canSwipeLeft, canSwipeRight,
-      swipeRight, swipeLeft, setExpanded, resetQueue,
+      swipeRight, swipeLeft, enqueueNext, setExpanded, resetQueue,
       openFullscreen, closeFullscreen, navigateToPoem,
-      favorites, toggleFavorite, isFavorite, clearFavorites,
+      favorites, upsertFavorite, removeFavorite, isFavorite, clearFavorites,
       myPoems, addMyPoem, updateMyPoem, deleteMyPoem, isUserPoem,
-      editRequest, setEditRequest,
-      recentlyViewed, addToRecentlyViewed])
+      editRequest, setEditRequest, editOnOpen, setEditOnOpen,
+      recentlyViewed, addToRecentlyViewed,
+      myPoemsCachedOnly])
 
   return (
     <PoetryContext.Provider value={ctx}>
