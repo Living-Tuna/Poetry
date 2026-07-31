@@ -28,27 +28,36 @@ export async function apiFetchUserPoems(userId) {
 export async function apiFetchPersonProfile(username) {
   const profile = await apiResolveUser(username)
   if (!profile) return null
-  const [stats, shelfRes, favRes] = await Promise.all([
-    apiFetchReadingStats(profile.id).catch(() => null),
-    supabase
+
+  let stats = null
+  let shelf = []
+  let favorites = []
+
+  try {
+    stats = await apiFetchReadingStats(profile.id)
+  } catch {}
+
+  try {
+    const { data } = await supabase
       .from('shelf_books')
       .select('*')
       .eq('user_id', profile.id)
       .order('created_at', { ascending: false })
-      .limit(100),
-    supabase.rpc('get_public_favorites', { target_user_id: profile.id }).catch(() => null),
-  ])
-  return {
-    profile,
-    stats,
-    shelf: (shelfRes?.data || []).map((b) => ({
+      .limit(100)
+    shelf = (data || []).map((b) => ({
       title: b.title,
       author: b.author,
       subtitle: b.subtitle,
       availability: b.availability,
       country: b.country,
       state: b.state,
-    })),
-    favorites: Array.isArray(favRes?.data) ? favRes.data : [],
-  }
+    }))
+  } catch {}
+
+  try {
+    const favRes = await supabase.rpc('get_public_favorites', { target_user_id: profile.id })
+    favorites = Array.isArray(favRes?.data) ? favRes.data : []
+  } catch {}
+
+  return { profile, stats, shelf, favorites }
 }

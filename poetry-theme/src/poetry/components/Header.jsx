@@ -16,7 +16,7 @@ export default function Header({
   onMenuToggle, onProfileToggle, lang, onLangClick,
   allPoems, onSearchSelect, favorites, view,
   onOpenBooks, onOpenFavorites,
-  chatContact, onChatBack, onChatProfile,
+  chatContact, chatName, onChatBack, onChatProfile,
   notice, onNoticeClick,
 }) {
   const scope = SCOPES[view] || 'poems'
@@ -192,9 +192,9 @@ export default function Header({
             </button>
             <div className="min-w-0 flex-1">
               <p className="text-base font-bold leading-tight truncate" style={{ fontFamily: '"Playfair Display", Georgia, serif' }}>
-                {chatContact}
+                {chatName || chatContact}
               </p>
-              <p className="text-[10px] opacity-60">Conversation</p>
+              <p className="text-[10px] opacity-60 truncate">{chatName ? `@${chatContact}` : 'Conversation'}</p>
             </div>
             <button onClick={onChatProfile} className="p-1.5 rounded-xl transition-opacity hover:opacity-70 flex-shrink-0" aria-label="View profile">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

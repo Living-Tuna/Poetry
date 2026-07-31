@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { useBook } from '../contexts/BookContext'
 import { useAuth } from '../../auth/AuthContext'
 
@@ -16,6 +16,7 @@ export default function InboxView({ onNavigate, openContact, onOpenContact }) {
   const me = user?.username || ''
   const [replyMsg, setReplyMsg] = useState('')
   const [dismissedReceived, setDismissedReceived] = useState(() => new Set())
+  const messagesEndRef = useRef(null)
 
   const conversations = useMemo(() => {
     const map = new Map()
@@ -37,6 +38,12 @@ export default function InboxView({ onNavigate, openContact, onOpenContact }) {
       openConv.messages.forEach((m) => { if (!m.read) markRead(m.id) })
     }
   }, [openContact]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (openConv && messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' })
+    }
+  }, [openContact, openConv?.messages.length]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const pendingRequest = useMemo(() => {
     if (!openConv) return null
@@ -120,8 +127,8 @@ export default function InboxView({ onNavigate, openContact, onOpenContact }) {
   if (openConv) {
     const thread = openConv.messages
     return (
-      <div className="min-h-full flex flex-col px-4 py-6 max-w-2xl mx-auto animate-fade-in">
-        <div className="flex-1 space-y-2 overflow-y-auto pb-3">
+      <div className="h-full flex flex-col px-4 py-4 max-w-2xl mx-auto">
+        <div className="flex-1 space-y-2 overflow-y-auto pb-3 animate-fade-in">
           {thread.map((m) => {
             const mine = m.from === me
             const kind = m.kind || 'chat'
@@ -149,10 +156,11 @@ export default function InboxView({ onNavigate, openContact, onOpenContact }) {
               </div>
             )
           })}
+          <div ref={messagesEndRef} />
         </div>
 
         {pendingRequest && (
-          <div className="flex items-center gap-2 mb-3 p-3 rounded-xl animate-pop-in"
+          <div className="flex items-center gap-2 mb-3 p-3 rounded-xl animate-pop-in flex-shrink-0"
             style={{ backgroundColor: 'color-mix(in srgb, var(--tp-secondary) 10%, transparent)', border: '1px solid var(--tp-border)' }}>
             <span className="text-xs font-semibold flex-1" style={{ color: 'var(--tp-text-secondary)' }}>
               {openConv.contact} wants to borrow "{pendingRequest.bookTitle}". Would you like to share?
@@ -167,7 +175,7 @@ export default function InboxView({ onNavigate, openContact, onOpenContact }) {
         )}
 
         {pendingReceived && (
-          <div className="flex items-center gap-2 mb-3 p-3 rounded-xl animate-pop-in"
+          <div className="flex items-center gap-2 mb-3 p-3 rounded-xl animate-pop-in flex-shrink-0"
             style={{ backgroundColor: 'color-mix(in srgb, #22c55e 10%, transparent)', border: '1px solid color-mix(in srgb, #22c55e 35%, transparent)' }}>
             <span className="text-xs font-semibold flex-1" style={{ color: 'var(--tp-text-secondary)' }}>
               {openConv.contact} shared "{pendingReceived.bookTitle}" with you. Did you receive it?
@@ -181,7 +189,7 @@ export default function InboxView({ onNavigate, openContact, onOpenContact }) {
           </div>
         )}
 
-        <div className="flex items-center gap-2 pt-3" style={{ borderTop: '1px solid var(--tp-border)' }}>
+        <div className="flex items-center gap-2 pt-3 flex-shrink-0" style={{ borderTop: '1px solid var(--tp-border)' }}>
           <input
             value={replyMsg}
             onChange={(e) => setReplyMsg(e.target.value)}

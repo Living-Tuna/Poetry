@@ -1,5 +1,13 @@
 const logs = [
   {
+    versionCode: '1.3.3',
+    date: 'July 2026',
+    features: [
+      'Chats now feel like a proper messenger — the message bubbles slide in while the typing bar and send button stay fixed at the bottom, and new messages auto-scroll into view',
+      'Chats show the correct reader — their name and @username appear in the header, and the profile button opens the right reader\'s profile, which now always loads',
+    ],
+  },
+  {
     versionCode: '1.2.2',
     date: 'July 2026',
     features: [

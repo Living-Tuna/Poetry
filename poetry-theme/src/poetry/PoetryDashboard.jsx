@@ -28,6 +28,7 @@ import ChangelogView from './components/ChangelogView'
 import LocationModal from './components/LocationModal'
 import { COUNTRIES } from '../constants/languages'
 import { useBook } from './contexts/BookContext'
+import { apiResolveUser } from '../api/messages'
 
 export default function PoetryDashboard() {
   const { user, login, logout, signup, checkUsername,
@@ -43,6 +44,7 @@ export default function PoetryDashboard() {
   const [lang, setLang] = useState(localStorage.getItem('poetry_lang') || 'en')
   const [languagePickerOpen, setLanguagePickerOpen] = useState(false)
   const [chatContact, setChatContact] = useState(null)
+  const [chatContactInfo, setChatContactInfo] = useState(null)
   const [showPersonProfile, setShowPersonProfile] = useState(false)
   const [notice, setNotice] = useState(null)
   const filteredPoems = allPoems.filter((p) => (p.language || 'en') === lang)
@@ -251,6 +253,15 @@ export default function PoetryDashboard() {
     }
   }
 
+  useEffect(() => {
+    if (!chatContact) { setChatContactInfo(null); return }
+    let alive = true
+    apiResolveUser(chatContact)
+      .then((p) => { if (alive && p) setChatContactInfo({ name: p.name || '', username: p.username || chatContact }) })
+      .catch(() => {})
+    return () => { alive = false }
+  }, [chatContact])
+
   const seenMsgIds = useRef(new Set())
   const seenNotifIds = useRef(new Set())
 
@@ -326,6 +337,7 @@ export default function PoetryDashboard() {
         onOpenBooks={(title) => { console.log('[Dashboard] onOpenBooks', title); setBlendFocus({ q: title || '', n: Date.now() }) }}
         onOpenFavorites={(fav) => { console.log('[Dashboard] onOpenFavorites', fav?.key); setFocusFavorite(fav || null); handleNavigate('favorites') }}
         chatContact={chatContact}
+        chatName={chatContactInfo?.name}
         onChatBack={() => setChatContact(null)}
         onChatProfile={() => setShowPersonProfile(true)}
         notice={notice}

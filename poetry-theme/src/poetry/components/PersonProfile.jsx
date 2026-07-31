@@ -30,6 +30,7 @@ export default function PersonProfile({ username, onClose }) {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [reloadKey, setReloadKey] = useState(0)
 
   useEffect(() => {
     let alive = true
@@ -40,7 +41,7 @@ export default function PersonProfile({ username, onClose }) {
       .catch(() => { if (alive) setError('Could not load this profile — try again.') })
       .finally(() => { if (alive) setLoading(false) })
     return () => { alive = false }
-  }, [username])
+  }, [username, reloadKey])
 
   const p = data?.profile
   const stats = data?.stats
@@ -83,6 +84,18 @@ export default function PersonProfile({ username, onClose }) {
           {error && !loading && (
             <div className="rounded-xl p-8 text-center" style={{ backgroundColor: 'var(--tp-surface)', border: '1.5px dashed var(--tp-border)' }}>
               <p className="text-sm" style={{ color: 'var(--tp-text-secondary)' }}>{error}</p>
+              <button onClick={() => setReloadKey((k) => k + 1)}
+                className="mt-4 px-4 py-1.5 rounded-xl text-xs font-medium transition-all hover:opacity-80"
+                style={{ backgroundColor: 'var(--tp-secondary)', color: '#fff' }}>Retry</button>
+            </div>
+          )}
+
+          {!error && !loading && data === null && (
+            <div className="rounded-xl p-8 text-center" style={{ backgroundColor: 'var(--tp-surface)', border: '1.5px dashed var(--tp-border)' }}>
+              <p className="text-sm" style={{ color: 'var(--tp-text-secondary)' }}>No reader found for "@{username}".</p>
+              <button onClick={() => setReloadKey((k) => k + 1)}
+                className="mt-4 px-4 py-1.5 rounded-xl text-xs font-medium transition-all hover:opacity-80"
+                style={{ backgroundColor: 'var(--tp-secondary)', color: '#fff' }}>Retry</button>
             </div>
           )}
 
