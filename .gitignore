@@ -1,6 +1,8 @@
 dist/
 node_modules/
 supabase/
+!/poetry-theme/src/supabase/
+!poetry-theme/src/supabase/**
 confidentials/
 .*
 !/.gitignore
