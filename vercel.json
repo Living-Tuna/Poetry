@@ -1,6 +1,6 @@
 {
-  "rootDirectory": "poetry-theme",
   "framework": "vite",
-  "buildCommand": "npm run build",
-  "outputDirectory": "dist"
+  "installCommand": "cd poetry-theme && npm install",
+  "buildCommand": "cd poetry-theme && npm run build",
+  "outputDirectory": "poetry-theme/dist"
 }
