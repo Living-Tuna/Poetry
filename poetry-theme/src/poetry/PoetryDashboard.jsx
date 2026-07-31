@@ -433,7 +433,13 @@ export default function PoetryDashboard() {
           />
         )}
         {bodyView === 'shelf' && <ShelfView onNavigate={handleNavigate} />}
-        {bodyView === 'blend' && <BlendView onNavigate={handleNavigate} focusQuery={blendFocus} />}
+        {bodyView === 'blend' && (
+          <BlendView
+            onNavigate={handleNavigate}
+            focusQuery={blendFocus}
+            onOpenAuth={() => { setAuthMode('login'); setSlideOpen(true) }}
+          />
+        )}
         {bodyView === 'inbox' && <InboxView onNavigate={handleNavigate} />}
         {bodyView === 'notifications' && <NotificationsView onNavigate={handleNavigate} />}
         {bodyView === 'settings' && <Settings onNavigate={handleNavigate} />}

@@ -69,13 +69,14 @@ function holderSort(a, b) {
   return 0
 }
 
-export default function BlendView({ onNavigate, focusQuery }) {
+export default function BlendView({ onNavigate, focusQuery, onOpenAuth }) {
   const { sendMessage, addNotif } = useBook()
   const { user } = useAuth()
   const [query, setQuery] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [results, setResults] = useState(null)
+  const [requestedKey, setRequestedKey] = useState(null)
   const runRef = useRef(null)
 
   async function runSearch(term) {
@@ -138,11 +139,19 @@ export default function BlendView({ onNavigate, focusQuery }) {
   }, [focusQuery])
 
   function handleRequest(book, holder) {
-    if (!user) { addNotif('Sign in to request a book'); return }
-    const name = holder.h.holder_name || holder.h.holder_username || 'Reader'
-    sendMessage(holder.h.holder_username || name, book.title,
-      `I'd like to borrow "${book.title}" by ${book.author || 'unknown author'}. Is it still available?`)
-    addNotif(`Request sent to ${name} for "${book.title}"`)
+    const holderName = holder.h.holder_username || holder.h.holder_name || 'Reader'
+    if (!user) {
+      if (onOpenAuth) { onOpenAuth(); return }
+      addNotif('Sign in to request a book')
+      return
+    }
+    const key = `${book.title}|${holder.h.holder_username || holderName}`
+    if (requestedKey === key) return
+    sendMessage(holder.h.holder_username || holderName, book.title,
+      `Hai, I'm interested in reading "${book.title}" can you please share.`)
+    addNotif(`Request sent to ${holderName} for "${book.title}"`)
+    setRequestedKey(key)
+    setTimeout(() => { if (onNavigate) onNavigate('inbox') }, 700)
   }
 
   return (
@@ -229,11 +238,24 @@ export default function BlendView({ onNavigate, focusQuery }) {
                         You hold this
                       </span>
                     ) : item.h.availability === 'available' ? (
-                      <button onClick={() => handleRequest(book, item)}
-                        className="px-3 py-1.5 rounded-xl text-xs font-medium text-white transition-all hover:brightness-110 active:scale-[0.98] whitespace-nowrap"
-                        style={{ backgroundColor: 'var(--tp-secondary)' }}>
-                        Request
-                      </button>
+                      (() => {
+                        const reqKey = `${book.title}|${item.h.holder_username || item.h.holder_name || 'Reader'}`
+                        const sent = requestedKey === reqKey
+                        return (
+                          <button onClick={() => handleRequest(book, item)} disabled={sent}
+                            className="px-3 py-1.5 rounded-xl text-xs font-medium text-white transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-90 whitespace-nowrap"
+                            style={{ backgroundColor: sent ? '#22c55e' : 'var(--tp-secondary)' }}>
+                            {sent ? (
+                              <span className="inline-flex items-center gap-1 animate-pop-in">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M20 6L9 17l-5-5" />
+                                </svg>
+                                Sent
+                              </span>
+                            ) : 'Request'}
+                          </button>
+                        )
+                      })()
                     ) : (
                       <span className="text-[10px] px-2 py-0.5 rounded-full whitespace-nowrap"
                         style={{ backgroundColor: 'color-mix(in srgb, #fbbf24 18%, transparent)', color: '#fbbf24' }}>
