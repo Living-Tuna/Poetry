@@ -10,22 +10,29 @@ export default function WritePoemView({
   categories, onCategoriesChange,
   lang,
 }) {
-  const titleRef = useRef(null)
+  const contentRef = useRef(null)
+  const onCloseRef = useRef(onClose)
+
+  useEffect(() => {
+    onCloseRef.current = onClose
+  }, [onClose])
 
   useEffect(() => {
     if (!open) return
     function handleKey(e) {
-      if (e.key === 'Escape') onClose()
+      if (e.key === 'Escape') onCloseRef.current?.()
     }
     window.addEventListener('keydown', handleKey)
     document.body.style.overflow = 'hidden'
-    const t = setTimeout(() => titleRef.current?.focus(), 60)
+    const t = window.setTimeout(() => {
+      contentRef.current?.focus()
+    }, 60)
     return () => {
       window.removeEventListener('keydown', handleKey)
       document.body.style.overflow = ''
       clearTimeout(t)
     }
-  }, [open, onClose])
+  }, [open])
 
   if (!open) return null
 
@@ -79,7 +86,6 @@ export default function WritePoemView({
       <div className="flex-1 overflow-y-auto poem-scroll px-5 py-8">
         <div className="max-w-2xl mx-auto">
           <input
-            ref={titleRef}
             value={title}
             onChange={(e) => onTitleChange(e.target.value)}
             placeholder="Title your poem..."
@@ -98,6 +104,7 @@ export default function WritePoemView({
           </p>
 
           <textarea
+            ref={contentRef}
             value={content}
             onChange={(e) => onContentChange(e.target.value)}
             placeholder="Write your poem here..."

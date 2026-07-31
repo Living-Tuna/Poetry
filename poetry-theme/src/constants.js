@@ -1,5 +1,5 @@
-export const SITE_NAME = 'poetree.in'
-export const SHARE_PREFIX = 'Independent poetry on'
+export const SITE_NAME = 'blendly.sbs'
+export const SHARE_PREFIX = 'Lend a book from nearest one\'s'
 
 export const HERO_MISSION_TEXT =
   'From the verses of prehistoric and ancient times to the poems written tonight, we carry humanity\u2019s literature forward \u2014 and connect you with like-minded readers to share real books through Blend.'

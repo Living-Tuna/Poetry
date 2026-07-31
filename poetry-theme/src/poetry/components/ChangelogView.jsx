@@ -53,6 +53,8 @@ export default function ChangelogView({ onNavigate }) {
           <div className="space-y-0">
             {logs.map((ver, i) => {
               const open = expanded[ver.versionCode]
+              const features = Array.isArray(ver.features) ? ver.features : []
+              const bugs = Array.isArray(ver.bugs) ? ver.bugs : []
               return (
                 <div key={ver.versionCode} className="relative pl-8 pb-2">
                   <div className="absolute left-0 top-1.5 w-[18px] h-[18px] rounded-full border-2 flex items-center justify-center"
@@ -79,10 +81,10 @@ export default function ChangelogView({ onNavigate }) {
 
                   {open && (
                     <div className="mt-2 space-y-2.5 pb-2 animate-fade-in">
-                      {ver.features.length > 0 && (
+                      {features.length > 0 && (
                         <div className="space-y-1">
                           <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#22c55e' }}>Features</p>
-                          {ver.features.map((feat, fi) => (
+                          {features.map((feat, fi) => (
                             <div key={fi} className="flex items-start gap-1.5">
                               <CheckIcon />
                               <span className="text-xs" style={{ color: 'var(--tp-text-secondary)' }}>{feat}</span>
@@ -90,10 +92,10 @@ export default function ChangelogView({ onNavigate }) {
                           ))}
                         </div>
                       )}
-                      {ver.bugs.length > 0 && (
+                      {bugs.length > 0 && (
                         <div className="space-y-1">
                           <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#ef4444' }}>Bug Fixes</p>
-                          {ver.bugs.map((bug, bi) => (
+                          {bugs.map((bug, bi) => (
                             <div key={bi} className="flex items-start gap-1.5">
                               <BugIcon />
                               <span className="text-xs" style={{ color: 'var(--tp-text-secondary)' }}>{bug}</span>

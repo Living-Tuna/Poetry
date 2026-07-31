@@ -1,6 +1,17 @@
 const logs = [
   {
-    versionCode: '1.3.4',
+    versionCode: '1.2.5',
+    date: 'July 2026',
+    bugs: [
+      'Poem typing no longer jumps from the body text into the title field while writing',
+    ],
+    features: [
+      'My Writings now has a dedicated, easier-to-manage page with quick actions to open, edit, or delete each poem',
+      'Creating a new poem is more obvious with a prominent New button and a cleaner empty-state experience',
+    ],
+  },
+  {
+    versionCode: '1.2.4',
     date: 'July 2026',
     features: [
       'Incoming messages flash as a banner in the header for a few seconds — book requests, shares, and replies all announce themselves, and tapping the banner jumps straight into that chat',
@@ -10,7 +21,7 @@ const logs = [
     ],
   },
   {
-    versionCode: '1.3.3',
+    versionCode: '1.2.3',
     date: 'July 2026',
     features: [
       'Chats now feel like a proper messenger — the message bubbles slide in while the typing bar and send button stay fixed at the bottom, and new messages auto-scroll into view',
