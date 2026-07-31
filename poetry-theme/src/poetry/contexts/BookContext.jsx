@@ -1,5 +1,6 @@
-import { createContext, useContext, useState, useCallback, useMemo, useEffect } from 'react'
+import { createContext, useContext, useCallback, useMemo } from 'react'
 import { useAuth } from '../../auth/AuthContext'
+import { useSyncedState } from './useSyncedState'
 
 const BookContext = createContext(null)
 
@@ -7,19 +8,11 @@ const STORAGE_KEY = 'poetry_bookshelf'
 const INBOX_KEY = 'poetry_inbox'
 const NOTIF_KEY = 'poetry_notifs'
 
-function load(key, fallback) {
-  try { return JSON.parse(localStorage.getItem(key)) || fallback } catch { return fallback }
-}
-
 export function BookProvider({ children }) {
   const { user } = useAuth()
-  const [shelf, setShelf] = useState(() => load(STORAGE_KEY, []))
-  const [inbox, setInbox] = useState(() => load(INBOX_KEY, []))
-  const [notifs, setNotifs] = useState(() => load(NOTIF_KEY, []))
-
-  useEffect(() => { localStorage.setItem(STORAGE_KEY, JSON.stringify(shelf)) }, [shelf])
-  useEffect(() => { localStorage.setItem(INBOX_KEY, JSON.stringify(inbox)) }, [inbox])
-  useEffect(() => { localStorage.setItem(NOTIF_KEY, JSON.stringify(notifs)) }, [notifs])
+  const [shelf, setShelf] = useSyncedState(user?.id, 'shelf', STORAGE_KEY)
+  const [inbox, setInbox] = useSyncedState(user?.id, 'inbox', INBOX_KEY)
+  const [notifs, setNotifs] = useSyncedState(user?.id, 'notifications', NOTIF_KEY)
 
   const addBook = useCallback((book) => {
     setShelf((prev) => [{ ...book, id: Date.now(), addedAt: new Date().toISOString(), sent: false, received: false, userId: user?.id }, ...prev])

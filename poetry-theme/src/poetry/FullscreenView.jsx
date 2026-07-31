@@ -1,6 +1,7 @@
 import { useRef, useState, useEffect, useLayoutEffect } from 'react'
 import { usePoetry } from './PoetryContext'
 import { CloseIcon, StarIcon } from './components/Icons'
+import { isIndependentPoem } from '../constants'
 
 const CATEGORIES = ['Love', 'Nature', 'Philosophy', 'Tragedy', 'Hope', 'Spirituality', 'Freedom', 'War', 'Death', 'Joy', 'Reflection', 'Fantasy']
 const SWIPE_THRESHOLD = 40
@@ -434,12 +435,18 @@ export default function FullscreenView() {
                       ))}
                     </div>
                   )}
-                  <div className="flex items-center justify-center gap-1 mt-3">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="#f59e0b" stroke="none">
-                      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                    </svg>
-                    <span className="text-xs font-medium" style={{ color: 'var(--tp-text-secondary)' }}>{abbrev(currentPoem.likes ?? 0)}</span>
-                  </div>
+                  {isIndependentPoem(currentPoem) ? (
+                    <div className="flex items-center justify-center gap-1 mt-3">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="#f59e0b" stroke="none">
+                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                      </svg>
+                      <span className="text-xs font-medium" style={{ color: 'var(--tp-text-secondary)' }}>{abbrev(currentPoem.likes ?? 0)}</span>
+                    </div>
+                  ) : (
+                    <span className="inline-block text-[10px] px-2 py-0.5 rounded-full mt-3" style={{ backgroundColor: 'color-mix(in srgb, var(--tp-text-secondary) 12%, transparent)', color: 'var(--tp-text-secondary)' }}>
+                      Historic poem · not ratable
+                    </span>
+                  )}
                 </div>
 
                 {/* Poem lines */}
@@ -530,12 +537,18 @@ function PoemView({ poem }) {
             ))}
           </div>
         )}
-        <div className="flex items-center justify-center gap-1 mt-3">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="#f59e0b" stroke="none">
-            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-          </svg>
-          <span className="text-xs font-medium" style={{ color: 'var(--tp-text-secondary)' }}>{abbrev(poem.likes ?? 0)}</span>
-        </div>
+        {isIndependentPoem(poem) ? (
+          <div className="flex items-center justify-center gap-1 mt-3">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="#f59e0b" stroke="none">
+              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+            </svg>
+            <span className="text-xs font-medium" style={{ color: 'var(--tp-text-secondary)' }}>{abbrev(poem.likes ?? 0)}</span>
+          </div>
+        ) : (
+          <span className="inline-block text-[10px] px-2 py-0.5 rounded-full mt-3" style={{ backgroundColor: 'color-mix(in srgb, var(--tp-text-secondary) 12%, transparent)', color: 'var(--tp-text-secondary)' }}>
+            Historic poem · not ratable
+          </span>
+        )}
       </div>
 
       <div className="space-y-0.5 select-none" style={{ WebkitUserSelect: 'none', userSelect: 'none' }}>

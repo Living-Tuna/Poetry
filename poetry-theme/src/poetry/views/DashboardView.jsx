@@ -1,9 +1,17 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import PoetryCard from '../PoetryCard'
 import ShareQuoteModal from '../components/ShareQuoteModal'
 import DataIndicator from '../components/DataIndicator'
 import { ClockIcon, PenIcon, BookIcon, HeartIcon } from '../components/Icons'
-import { SITE_NAME } from '../../constants'
+import { SITE_NAME, isIndependentPoem } from '../../constants'
+import { apiFetchStats } from '../../api/stats'
+
+function formatCount(n) {
+  if (!n) return '0'
+  if (n < 1000) return String(n)
+  if (n < 1000000) return (n / 1000).toFixed(n < 10000 ? 1 : 0).replace(/\.0$/, '') + 'k'
+  return (n / 1000000).toFixed(n < 10000000 ? 1 : 0).replace(/\.0$/, '') + 'm'
+}
 
 export default function DashboardView({
   user, slideOpen, setSlideOpen, setAuthMode, btnWhite,
@@ -14,6 +22,16 @@ export default function DashboardView({
   onNewPoem,
 }) {
   const [shareTarget, setShareTarget] = useState(null)
+  const [stats, setStats] = useState(null)
+
+  useEffect(() => {
+    let cancelled = false
+    apiFetchStats()
+      .then((data) => { if (!cancelled) setStats(data) })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [])
+
   return (
     <div className="px-4 py-5 max-w-2xl mx-auto w-full space-y-8">
       <div className="text-center animate-fade-in">
@@ -31,6 +49,30 @@ export default function DashboardView({
               Sign In to Save
             </button>
           </>
+        )}
+
+        {stats && (
+          <div className="mt-5">
+            <div className="grid grid-cols-3 gap-2">
+              <div className="rounded-xl px-3 py-2.5 text-center" style={{ backgroundColor: 'var(--tp-surface)', border: '1.5px solid var(--tp-border)', boxShadow: 'var(--tp-card-shadow)' }}>
+                <p className="text-lg font-bold leading-tight" style={{ color: 'var(--tp-secondary)', fontFamily: '"Playfair Display", Georgia, serif' }}>{formatCount(stats.total_users)}</p>
+                <p className="text-[10px] mt-0.5" style={{ color: 'var(--tp-text-secondary)' }}>Users</p>
+              </div>
+              <div className="rounded-xl px-3 py-2.5 text-center" style={{ backgroundColor: 'var(--tp-surface)', border: '1.5px solid var(--tp-border)', boxShadow: 'var(--tp-card-shadow)' }}>
+                <p className="text-lg font-bold leading-tight" style={{ color: 'var(--tp-secondary)', fontFamily: '"Playfair Display", Georgia, serif' }}>{formatCount(stats.active_users)}</p>
+                <p className="text-[10px] mt-0.5" style={{ color: 'var(--tp-text-secondary)' }}>Active</p>
+              </div>
+              <div className="rounded-xl px-3 py-2.5 text-center" style={{ backgroundColor: 'var(--tp-surface)', border: '1.5px solid var(--tp-border)', boxShadow: 'var(--tp-card-shadow)' }}>
+                <p className="text-lg font-bold leading-tight" style={{ color: 'var(--tp-secondary)', fontFamily: '"Playfair Display", Georgia, serif' }}>{formatCount(stats.total_poems)}</p>
+                <p className="text-[10px] mt-0.5" style={{ color: 'var(--tp-text-secondary)' }}>Poems</p>
+              </div>
+            </div>
+            <div className="flex items-center justify-center gap-2 mt-2 text-[10px]" style={{ color: 'var(--tp-text-secondary)' }}>
+              <span>{formatCount(stats.independent_poems)} independent</span>
+              <span>·</span>
+              <span>{formatCount(stats.historic_poems)} historic</span>
+            </div>
+          </div>
         )}
       </div>
 
@@ -113,8 +155,16 @@ export default function DashboardView({
                 {p.content.split('\n')[0]}...
               </p>
               <div className="flex items-center gap-1 mt-2">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="#f59e0b" stroke="none"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" /></svg>
-                <span className="text-xs" style={{ color: 'var(--tp-text-secondary)' }}>{p.likes?.toLocaleString()}</span>
+                {isIndependentPoem(p) ? (
+                  <>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="#f59e0b" stroke="none"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" /></svg>
+                    <span className="text-xs" style={{ color: 'var(--tp-text-secondary)' }}>{p.likes?.toLocaleString()}</span>
+                  </>
+                ) : (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ backgroundColor: 'color-mix(in srgb, var(--tp-text-secondary) 12%, transparent)', color: 'var(--tp-text-secondary)' }}>
+                    Historic
+                  </span>
+                )}
               </div>
             </button>
           ))}

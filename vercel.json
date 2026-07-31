@@ -2,5 +2,6 @@
   "framework": "vite",
   "installCommand": "cd poetry-theme && npm install",
   "buildCommand": "cd poetry-theme && npm run build",
-  "outputDirectory": "poetry-theme/dist"
+  "outputDirectory": "poetry-theme/dist",
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
 }

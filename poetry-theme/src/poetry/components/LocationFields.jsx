@@ -13,6 +13,14 @@ const defaultStyle = {
   border: '1.5px solid var(--tp-border)',
 }
 
+function CheckIcon({ size = 14 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
+  )
+}
+
 export default function LocationFields({ country, setCountry, state, setState, zip, setZip, inputStyle, onInputFocus, onInputBlur }) {
   const style = inputStyle || defaultStyle
   const [stateLoading, setStateLoading] = useState(false)
@@ -104,17 +112,27 @@ export default function LocationFields({ country, setCountry, state, setState, z
             Detecting state from PIN code...
           </p>
         )}
-        {!stateLoading && autoState && (
-          <p className="text-[11px] mt-1 opacity-80">State auto-detected from your PIN code.</p>
-        )}
       </div>
 
-      <input value={state} onChange={(e) => setState(e.target.value)}
-        placeholder="State / Region" style={style}
-        onFocus={onInputFocus} onBlur={onInputBlur} />
+      {!stateLoading && fetchFailed && (
+        <div>
+          <p className="text-[11px] mb-1 opacity-70">Auto-detect failed for this code — enter your state manually.</p>
+          <input value={state} onChange={(e) => setState(e.target.value)}
+            placeholder="State / Region" style={style}
+            onFocus={onInputFocus} onBlur={onInputBlur} />
+        </div>
+      )}
 
-      {fetchFailed && (
-        <p className="text-[11px] opacity-70">Auto-detect failed for this code — enter your state manually.</p>
+      {!stateLoading && !fetchFailed && state && (
+        <div className="flex items-center justify-between gap-2 rounded-xl px-3 py-2.5"
+          style={{ backgroundColor: 'color-mix(in srgb, var(--tp-secondary) 10%, transparent)', border: '1px solid var(--tp-border)' }}>
+          <span className="text-xs font-medium" style={{ color: 'var(--tp-text-secondary)' }}>State / Region</span>
+          <span className="text-xs font-semibold flex items-center gap-1" style={{ color: 'var(--tp-secondary)' }}>
+            <CheckIcon />
+            {state}
+            {autoState && <span className="text-[10px] font-normal opacity-70">· auto-detected</span>}
+          </span>
+        </div>
       )}
     </div>
   )

@@ -41,7 +41,6 @@ export default function PoetryDashboard() {
   const { shelf, inbox, inboxUnread, unreadCount } = useBook()
   const [lang, setLang] = useState(localStorage.getItem('poetry_lang') || 'en')
   const [languagePickerOpen, setLanguagePickerOpen] = useState(false)
-  const [showChangelog, setShowChangelog] = useState(false)
   const filteredPoems = allPoems.filter((p) => (p.language || 'en') === lang)
   const trending = filteredPoems.length > 0
     ? [...filteredPoems]
@@ -59,7 +58,6 @@ export default function PoetryDashboard() {
     ? favorites[Math.floor(Math.random() * favorites.length)]
     : null
   const [bodyView, setBodyView] = useState('dashboard')
-  const [showSettings, setShowSettings] = useState(false)
   const [slideOpen, setSlideOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [showLocationModal, setShowLocationModal] = useState(false)
@@ -102,11 +100,12 @@ export default function PoetryDashboard() {
       localStorage.setItem('poetry_lang', seg)
       setLang(seg)
       setBodyView('dashboard')
-    } else if (seg === 'shelf') setBodyView('shelf')
+    }     else if (seg === 'shelf') setBodyView('shelf')
     else if (seg === 'blend') setBodyView('blend')
     else if (seg === 'inbox') setBodyView('inbox')
     else if (seg === 'notifications') setBodyView('notifications')
-  }, [location.pathname])
+    else if (seg) navigate(`/${lang}`)
+  }, [location.pathname, lang, navigate])
 
   function handleLanguageSelect(code) {
     localStorage.setItem('poetry_lang', code)
@@ -339,7 +338,7 @@ export default function PoetryDashboard() {
       <MenuModal
         open={menuOpen}
         onClose={() => setMenuOpen(false)}
-        onSettings={() => { setShowSettings(true); setMenuOpen(false) }}
+        onSettings={() => { setMenuOpen(false); handleNavigate('settings') }}
         onWriteNow={() => { setShowWriteModal(true); setMenuOpen(false); setEditingPoem(null); setWriteTitle(''); setWriteContent(''); setWriteCategories([]) }}
         onFavorites={() => { setMenuOpen(false); handleNavigate('favorites') }}
         onNavigate={handleNavigate}
@@ -350,10 +349,8 @@ export default function PoetryDashboard() {
         inboxLatest={inbox[0] ? `Re: ${inbox[0].bookTitle}` : 'latest messages'}
         unreadCount={inboxUnread}
         shelfCount={shelf.length}
-        onChangelog={() => setShowChangelog(true)}
+        onChangelog={() => { setMenuOpen(false); handleNavigate('changelog') }}
       />
-
-      {showSettings && <Settings onClose={() => setShowSettings(false)} />}
 
       {showLocationModal && <LocationModal onClose={() => setShowLocationModal(false)} />}
 
@@ -363,8 +360,6 @@ export default function PoetryDashboard() {
         onSelect={handleLanguageSelect}
         onClose={() => setLanguagePickerOpen(false)}
       />
-
-      {showChangelog && <ChangelogView onClose={() => setShowChangelog(false)} />}
 
       <WritePoemModal
         open={showWriteModal}
@@ -435,6 +430,8 @@ export default function PoetryDashboard() {
         {bodyView === 'blend' && <BlendView onNavigate={handleNavigate} />}
         {bodyView === 'inbox' && <InboxView onNavigate={handleNavigate} />}
         {bodyView === 'notifications' && <NotificationsView onNavigate={handleNavigate} />}
+        {bodyView === 'settings' && <Settings onNavigate={handleNavigate} />}
+        {bodyView === 'changelog' && <ChangelogView onNavigate={handleNavigate} />}
       </main>
 
       {/* Floating write button — only on dashboard */}

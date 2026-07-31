@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useCallback, useMemo, useRef, useE
 import { useAuth } from '../auth/AuthContext'
 import { apiFetchAllPoems, apiAddPoem, apiUpdatePoem, apiDeletePoem } from '../api/poems'
 import { apiFetchUserPoems } from '../api/profile'
+import { useSyncedState } from './contexts/useSyncedState'
 
 const MY_POEMS_KEY = 'poetry-my-poems'
 const RECENT_KEY = 'poetry-recently-viewed'
@@ -29,9 +30,9 @@ export function PoetryProvider({ children }) {
   const [expanded, setExpanded] = useState(false)
   const [fullscreen, setFullscreen] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [favorites, setFavorites] = useState([])
+  const [favorites, setFavorites] = useSyncedState(user?.id, 'favorites', prefixedKey('poetry-favorites', user?.username), Boolean(user))
   const [myPoems, setMyPoems] = useState([])
-  const [recentlyViewed, setRecentlyViewed] = useState([])
+  const [recentlyViewed, setRecentlyViewed] = useSyncedState(user?.id, 'recently_viewed', prefixedKey(RECENT_KEY, user?.username), Boolean(user))
   const [editRequest, setEditRequest] = useState(null)
   const [editOnOpen, setEditOnOpen] = useState(false)
   const [myPoemsCachedOnly, setMyPoemsCachedOnly] = useState(true)
@@ -62,28 +63,11 @@ export function PoetryProvider({ children }) {
     return () => { cancelled = true }
   }, [])
 
-  function dedupe(arr) {
-    const seen = new Set()
-    return arr.filter((item) => {
-      const key = String(item?.id ?? '')
-      if (!key || seen.has(key)) return false
-      seen.add(key)
-      return true
-    })
-  }
-
   useEffect(() => {
-    if (!user) { setMyPoems([]); setRecentlyViewed([]); setFavorites([]); return }
+    if (!user) { setMyPoems([]); return }
     setMyPoems(loadArray(prefixedKey(MY_POEMS_KEY, user.username)))
-    setRecentlyViewed(dedupe(loadArray(prefixedKey(RECENT_KEY, user.username))))
-    setFavorites(loadArray(prefixedKey('poetry-favorites', user.username)))
     loadUserPoems()
   }, [user])
-
-  useEffect(() => {
-    if (!user) return
-    saveArray(prefixedKey('poetry-favorites', user.username), favorites)
-  }, [favorites, user])
 
   async function loadUserPoems() {
     if (!user) return
@@ -106,9 +90,7 @@ export function PoetryProvider({ children }) {
     setRecentlyViewed((prev) => {
       const id = String(poem.id)
       const filtered = prev.filter((p) => String(p.id) !== id)
-      const updated = [poem, ...filtered].slice(0, MAX_RECENT)
-      saveArray(prefixedKey(RECENT_KEY, user.username), updated)
-      return updated
+      return [poem, ...filtered].slice(0, MAX_RECENT)
     })
   }, [user])
 

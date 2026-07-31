@@ -25,7 +25,7 @@ function CheckIcon() {
   )
 }
 
-export default function ChangelogView({ onClose }) {
+export default function ChangelogView({ onNavigate }) {
   const [expanded, setExpanded] = useState({})
 
   function toggle(v) {
@@ -33,27 +33,22 @@ export default function ChangelogView({ onClose }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-8"
-      onClick={onClose}
-      style={{ backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}>
-      <div onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-md rounded-2xl p-5 max-h-[80vh] overflow-y-auto animate-fade-in"
-        style={{ backgroundColor: 'var(--tp-surface)', border: '1.5px solid var(--tp-border)' }}>
+    <div className="min-h-full px-4 py-6 max-w-2xl mx-auto animate-fade-in">
+      <div className="flex items-center gap-3 mb-6">
+        <button onClick={() => onNavigate('dashboard')}
+          className="p-1.5 rounded-xl transition-opacity hover:opacity-70"
+          style={{ color: 'var(--tp-text-secondary)' }} aria-label="Back">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <path d="M19 12H5M12 19l-7-7 7-7" />
+          </svg>
+        </button>
+        <h2 className="text-xl font-bold" style={{ color: 'var(--tp-text)', fontFamily: '"Playfair Display", Georgia, serif' }}>
+          Changelog
+        </h2>
+      </div>
 
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="text-lg font-bold" style={{ fontFamily: '"Playfair Display", serif', color: 'var(--tp-text)' }}>
-            Changelog
-          </h2>
-          <button onClick={onClose} className="p-1 rounded-lg transition-opacity hover:opacity-70"
-            style={{ color: 'var(--tp-text-secondary)' }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <path d="M18 6L6 18M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-
-        <div className="relative">
-          <div className="absolute left-[9px] top-2 bottom-2 w-px" style={{ backgroundColor: 'var(--tp-border)' }} />
+      <div className="relative">
+        <div className="absolute left-[9px] top-2 bottom-2 w-px" style={{ backgroundColor: 'var(--tp-border)' }} />
 
           <div className="space-y-0">
             {logs.map((ver, i) => {
@@ -113,7 +108,6 @@ export default function ChangelogView({ onClose }) {
             })}
           </div>
         </div>
-      </div>
     </div>
   )
 }
