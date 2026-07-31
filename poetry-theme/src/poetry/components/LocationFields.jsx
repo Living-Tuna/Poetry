@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { COUNTRIES } from '../../constants/languages'
-import { apiFetchStateFromZip } from '../../api/location'
+import { apiFetchStateFromZip, apiAutoDetectLocation } from '../../api/location'
 
 const countryNames = Object.values(COUNTRIES)
   .map((c) => c.name)
@@ -26,51 +26,50 @@ export default function LocationFields({ country, setCountry, state, setState, z
   const [stateLoading, setStateLoading] = useState(false)
   const [autoState, setAutoState] = useState(false)
   const [fetchFailed, setFetchFailed] = useState(false)
+  const [autoBusy, setAutoBusy] = useState(true)
+  const [autoFailed, setAutoFailed] = useState(false)
+  const [autoOk, setAutoOk] = useState(false)
   const timer = useRef(null)
-  const ranInitial = useRef(false)
-
-  useEffect(() => () => clearTimeout(timer.current), [])
 
   useEffect(() => {
-    if (ranInitial.current) return
-    ranInitial.current = true
+    let cancelled = false
+    setAutoBusy(true)
+    apiAutoDetectLocation()
+      .then((loc) => {
+        if (cancelled) return
+        if (loc.country && !country) setCountry(loc.country)
+        if (loc.state && !state) {
+          setState(loc.state)
+          setAutoState(true)
+        }
+        setAutoOk(!!loc.country)
+        setAutoFailed(!loc.country)
+      })
+      .catch(() => {
+        if (!cancelled) setAutoFailed(true)
+      })
+      .finally(() => {
+        if (!cancelled) setAutoBusy(false)
+      })
+    return () => { cancelled = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  useEffect(() => {
     const digits = zip.replace(/\D/g, '')
     const code = codeFor(country)
-    if (code && digits.length >= 4) {
-      setStateLoading(true)
-      timer.current = setTimeout(async () => {
-        try {
-          const st = await apiFetchStateFromZip(code, digits)
-          setState(st)
-          setAutoState(true)
-        } catch {
-          setAutoState(false)
-          setFetchFailed(true)
-        } finally {
-          setStateLoading(false)
-        }
-      }, 500)
-    }
-  }, [zip, country, setState])
-
-  function codeFor(name) {
-    return Object.entries(COUNTRIES).find(([, v]) => v.name === name)?.[0] || ''
-  }
-
-  function runDetect(code, digits) {
-    clearTimeout(timer.current)
     if (!code || digits.length < 4) {
       setStateLoading(false)
-      setAutoState(false)
-      setState('')
       return
     }
     setStateLoading(true)
+    clearTimeout(timer.current)
     timer.current = setTimeout(async () => {
       try {
         const st = await apiFetchStateFromZip(code, digits)
         setState(st)
         setAutoState(true)
+        setFetchFailed(false)
       } catch {
         setAutoState(false)
         setFetchFailed(true)
@@ -78,23 +77,43 @@ export default function LocationFields({ country, setCountry, state, setState, z
         setStateLoading(false)
       }
     }, 500)
+    return () => clearTimeout(timer.current)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [zip, country])
+
+  function codeFor(name) {
+    return Object.entries(COUNTRIES).find(([, v]) => v.name === name)?.[0] || ''
   }
 
   function handleZipChange(value) {
-    const digits = value.replace(/\D/g, '')
-    setZip(digits)
+    setZip(value.replace(/\D/g, ''))
     setFetchFailed(false)
-    runDetect(codeFor(country), digits)
   }
 
   function handleCountryChange(value) {
     setCountry(value)
     setFetchFailed(false)
-    runDetect(codeFor(value), zip.replace(/\D/g, ''))
   }
 
   return (
     <div className="space-y-2">
+      {autoBusy && (
+        <p className="text-[11px] opacity-70 flex items-center gap-1.5">
+          <span className="w-3 h-3 rounded-full border-2 border-transparent animate-spin inline-block"
+            style={{ borderTopColor: 'currentColor' }} />
+          Detecting your location...
+        </p>
+      )}
+      {!autoBusy && autoFailed && (
+        <p className="text-[11px] opacity-70">Couldn't access your location — enter your country and state manually.</p>
+      )}
+      {!autoBusy && autoOk && (
+        <p className="text-[11px] flex items-center gap-1" style={{ color: 'var(--tp-secondary)' }}>
+          <CheckIcon size={12} />
+          Location detected automatically — confirm below.
+        </p>
+      )}
+
       <select value={country} onChange={(e) => handleCountryChange(e.target.value)}
         style={{ ...style, appearance: 'auto' }}>
         <option value="">Select country</option>

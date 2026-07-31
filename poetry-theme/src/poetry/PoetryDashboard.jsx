@@ -94,6 +94,7 @@ export default function PoetryDashboard() {
 
   useEffect(() => {
     const seg = location.pathname.split('/')[1]
+    window.scrollTo(0, 0)
     const knownLangs = new Set(Object.values(COUNTRIES).flatMap((c) => c.languages.map((l) => l.code)))
     knownLangs.add('en')
     if (seg && knownLangs.has(seg)) {
@@ -266,7 +267,7 @@ export default function PoetryDashboard() {
   }
 
   return (
-    <div className="h-screen flex flex-col" style={{ backgroundColor: 'var(--tp-bg)' }}>
+    <div className="flex flex-col" style={{ height: '100vh', height: '100dvh', backgroundColor: 'var(--tp-bg)' }}>
       <Header
         onMenuToggle={() => setMenuOpen(!menuOpen)}
         onProfileToggle={() => setSlideOpen(!slideOpen)}

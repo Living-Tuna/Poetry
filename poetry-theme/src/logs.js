@@ -1,5 +1,14 @@
 const logs = [
   {
+    versionCode: '1.1.4',
+    date: 'July 2026',
+    features: [
+      'Your country and state are now detected automatically on sign-in and when setting up Blend — only denied or unavailable locations fall back to manual entry',
+      'Book requests and replies now sync instantly across accounts — the recipient gets your message in their inbox in real time',
+      'The History Library: 150+ passages from the greatest works of all time — the Bible, the Quran, the Odyssey, the Iliad, the Bhagavad Gita, the Tao Te Ching, Shakespeare, Milton, Dante, and the world\'s poets — all public domain and unexpurgated',
+    ],
+  },
+  {
     versionCode: '1.1.3',
     date: 'July 2026',
     bugs: [
