@@ -1,43 +1,134 @@
 import { useState } from 'react'
 import { useBook } from '../contexts/BookContext'
 import { useAuth } from '../../auth/AuthContext'
+import { COUNTRIES } from '../../constants/languages'
+import { apiSearchShelfBooks } from '../../api/shelfBooks'
 
-const BOOKS_DB = [
-  { title: 'The Great Gatsby', author: 'F. Scott Fitzgerald', isbn: '9780743273565' },
-  { title: 'To Kill a Mockingbird', author: 'Harper Lee', isbn: '9780061120084' },
-  { title: '1984', author: 'George Orwell', isbn: '9780451524935' },
-  { title: 'Pride and Prejudice', author: 'Jane Austen', isbn: '9780141439518' },
-  { title: 'The Catcher in the Rye', author: 'J.D. Salinger', isbn: '9780316769488' },
-  { title: 'Animal Farm', author: 'George Orwell', isbn: '9780451526342' },
-  { title: 'Lord of the Flies', author: 'William Golding', isbn: '9780399501487' },
-  { title: 'The Hobbit', author: 'J.R.R. Tolkien', isbn: '9780547928227' },
-]
+const geoCache = new Map()
+
+function countryCodeFor(name) {
+  return Object.entries(COUNTRIES).find(([, v]) => v.name === name)?.[0] || ''
+}
+
+async function geoFor(code, zip) {
+  if (!code || !zip) return null
+  const key = `${code}:${zip}`
+  if (geoCache.has(key)) return geoCache.get(key)
+  try {
+    const res = await fetch(`https://api.zippopotam.us/${code}/${zip}`)
+    if (!res.ok) throw new Error('not found')
+    const data = await res.json()
+    const p = data?.places?.[0]
+    const g = p ? { lat: Number(p.latitude), lng: Number(p.longitude) } : null
+    geoCache.set(key, g)
+    return g
+  } catch {
+    geoCache.set(key, null)
+    return null
+  }
+}
+
+function haversine(a, b) {
+  const R = 6371
+  const toRad = (deg) => (deg * Math.PI) / 180
+  const dLat = toRad(b.lat - a.lat)
+  const dLng = toRad(b.lng - a.lng)
+  const s = Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng / 2) ** 2
+  return 2 * R * Math.asin(Math.sqrt(s))
+}
+
+function formatDist(km) {
+  if (km < 1) return 'less than a km away'
+  if (km < 1000) return `~${Math.round(km)} km away`
+  return `~${(km / 1000).toFixed(1).replace(/\.0$/, '')}k km away`
+}
+
+function userLocation(user) {
+  return {
+    country: localStorage.getItem('poetry_country') || user?.country || '',
+    state: localStorage.getItem('poetry_state') || user?.state || '',
+    zip: localStorage.getItem('poetry_zip') || user?.zip || '',
+  }
+}
+
+function holderLocationLabel(h) {
+  const parts = []
+  if (h.state) parts.push(h.state)
+  if (h.country) parts.push(h.country)
+  return parts.join(', ') || 'Location unknown'
+}
+
+function holderSort(a, b) {
+  if (a.isSelf !== b.isSelf) return a.isSelf ? 1 : -1
+  const avail = (x) => (x.h.availability === 'available' ? 0 : 1)
+  if (avail(a) !== avail(b)) return avail(a) - avail(b)
+  if (a.distanceKm !== null && b.distanceKm !== null) return a.distanceKm - b.distanceKm
+  if (a.distanceKm !== null) return -1
+  if (b.distanceKm !== null) return 1
+  return 0
+}
 
 export default function BlendView({ onNavigate }) {
-  const { shelf, sendMessage, addNotif } = useBook()
+  const { sendMessage, addNotif } = useBook()
   const { user } = useAuth()
   const [query, setQuery] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
   const [results, setResults] = useState(null)
 
-  function handleSearch() {
-    if (!query.trim()) return
-    const q = query.toLowerCase()
-    const found = BOOKS_DB.filter((b) =>
-      b.title.toLowerCase().includes(q) || b.author.toLowerCase().includes(q)
-    )
-    setResults(found)
+  async function handleSearch() {
+    if (!query.trim() || busy) return
+    setBusy(true)
+    setError('')
+    setResults(null)
+    try {
+      const rows = await apiSearchShelfBooks(query.trim())
+
+      const groups = new Map()
+      for (const r of rows) {
+        const key = `${r.title.trim().toLowerCase()}||${(r.author || '').trim().toLowerCase()}`
+        if (!groups.has(key)) {
+          groups.set(key, { title: r.title, author: r.author, subtitle: r.subtitle, summary: r.summary, holders: [] })
+        }
+        groups.get(key).holders.push(r)
+      }
+
+      const req = userLocation(user)
+      const reqGeo = req.country && req.zip
+        ? await geoFor(countryCodeFor(req.country), req.zip)
+        : null
+
+      const out = []
+      for (const g of groups.values()) {
+        const holders = []
+        for (const h of g.holders) {
+          const isSelf = h.user_id === user?.id
+          let distanceKm = null
+          if (!isSelf && reqGeo && h.country && h.zip) {
+            const g2 = await geoFor(countryCodeFor(h.country), h.zip)
+            if (g2) distanceKm = haversine(reqGeo, g2)
+          }
+          holders.push({ h, distanceKm, isSelf })
+        }
+        holders.sort(holderSort)
+        out.push({ ...g, holders })
+      }
+      setResults(out)
+    } catch {
+      setError('Search failed — try again.')
+      setResults([])
+    } finally {
+      setBusy(false)
+    }
   }
 
-  function handleRequest(book) {
+  function handleRequest(book, holder) {
     if (!user) { addNotif('Sign in to request a book'); return }
-    const holder = shelf.find((b) => b.title.toLowerCase() === book.title.toLowerCase())
-    if (holder) {
-      sendMessage(holder.author || 'Unknown', book.title, `I'd like to borrow "${book.title}". Is it available?`)
-      addNotif(`Request sent to ${holder.author || 'the holder'} for "${book.title}"`)
-    } else {
-      sendMessage('nearby_reader', book.title, `I'm looking for "${book.title}". Do you have a copy?`)
-      addNotif(`Looking for "${book.title}" — checking nearby readers...`)
-    }
+    const name = holder.h.holder_name || holder.h.holder_username || 'Reader'
+    sendMessage(holder.h.holder_username || name, book.title,
+      `I'd like to borrow "${book.title}" by ${book.author || 'unknown author'}. Is it still available?`)
+    addNotif(`Request sent to ${name} for "${book.title}"`)
   }
 
   return (
@@ -65,40 +156,83 @@ export default function BlendView({ onNavigate }) {
           placeholder="Enter book name..."
           className="flex-1 px-4 py-2.5 rounded-xl text-sm outline-none transition-colors"
           style={{ backgroundColor: 'var(--tp-surface)', color: 'var(--tp-text)', border: '1.5px solid var(--tp-border)' }} />
-        <button onClick={handleSearch}
-          className="px-5 py-2.5 rounded-xl text-sm font-medium text-white transition-all hover:brightness-110 active:scale-[0.98]"
+        <button onClick={handleSearch} disabled={busy}
+          className="px-5 py-2.5 rounded-xl text-sm font-medium text-white transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-50"
           style={{ backgroundColor: 'var(--tp-secondary)' }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-            <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
-          </svg>
+          {busy ? (
+            <span className="w-4 h-4 rounded-full border-2 border-transparent animate-spin inline-block"
+              style={{ borderTopColor: '#fff' }} />
+          ) : (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
+            </svg>
+          )}
         </button>
       </div>
 
-      {results && results.length === 0 && (
+      {error && (
         <div className="rounded-xl p-6 text-center" style={{ backgroundColor: 'var(--tp-surface)', border: '1.5px dashed var(--tp-border)' }}>
-          <p className="text-sm" style={{ color: 'var(--tp-text-secondary)' }}>No books found. Try a different name.</p>
+          <p className="text-sm" style={{ color: 'var(--tp-text-secondary)' }}>{error}</p>
+        </div>
+      )}
+
+      {results && results.length === 0 && !error && (
+        <div className="rounded-xl p-6 text-center" style={{ backgroundColor: 'var(--tp-surface)', border: '1.5px dashed var(--tp-border)' }}>
+          <p className="text-sm" style={{ color: 'var(--tp-text-secondary)' }}>
+            No one has listed this book yet. Try a different name, or add it to your shelf to make it findable.
+          </p>
         </div>
       )}
 
       {results && results.length > 0 && (
-        <div className="space-y-2">
+        <div className="space-y-3">
           <p className="text-xs font-semibold mb-2" style={{ color: 'var(--tp-text-secondary)' }}>
             {results.length} book{results.length > 1 ? 's' : ''} found
           </p>
           {results.map((book, i) => (
             <div key={i} className="rounded-xl p-4 transition-all duration-200"
               style={{ backgroundColor: 'var(--tp-surface)', border: '1.5px solid var(--tp-border)' }}>
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-bold" style={{ color: 'var(--tp-text)' }}>{book.title}</p>
-                  <p className="text-xs mt-0.5" style={{ color: 'var(--tp-secondary)' }}>{book.author}</p>
-                  <p className="text-[10px] mt-0.5" style={{ color: 'var(--tp-text-secondary)' }}>ISBN: {book.isbn}</p>
-                </div>
-                <button onClick={() => handleRequest(book)}
-                  className="px-3 py-1.5 rounded-xl text-xs font-medium text-white transition-all hover:brightness-110 active:scale-[0.98] whitespace-nowrap"
-                  style={{ backgroundColor: 'var(--tp-secondary)' }}>
-                  Request
-                </button>
+              <p className="text-sm font-bold" style={{ color: 'var(--tp-text)' }}>{book.title}</p>
+              <p className="text-xs mt-0.5" style={{ color: 'var(--tp-secondary)' }}>{book.author}</p>
+              {book.subtitle && <p className="text-[10px] mt-0.5" style={{ color: 'var(--tp-text-secondary)' }}>{book.subtitle}</p>}
+
+              <div className="mt-3 pt-3 space-y-2" style={{ borderTop: '1px solid var(--tp-border)' }}>
+                <p className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: 'var(--tp-text-secondary)' }}>
+                  {book.holders.length} holder{book.holders.length > 1 ? 's' : ''}
+                </p>
+                {book.holders.map((item, j) => (
+                  <div key={j} className="flex items-center justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-semibold" style={{ color: 'var(--tp-text)' }}>
+                        {item.h.holder_name || item.h.holder_username || 'Reader'}
+                      </p>
+                      <p className="text-[10px] mt-0.5" style={{ color: 'var(--tp-text-secondary)' }}>
+                        {item.distanceKm !== null ? (
+                          <span style={{ color: 'var(--tp-secondary)' }}>{formatDist(item.distanceKm)}</span>
+                        ) : (
+                          holderLocationLabel(item.h)
+                        )}
+                      </p>
+                    </div>
+                    {item.isSelf ? (
+                      <span className="text-[10px] px-2 py-0.5 rounded-full whitespace-nowrap"
+                        style={{ backgroundColor: 'color-mix(in srgb, #22c55e 18%, transparent)', color: '#22c55e' }}>
+                        You hold this
+                      </span>
+                    ) : item.h.availability === 'available' ? (
+                      <button onClick={() => handleRequest(book, item)}
+                        className="px-3 py-1.5 rounded-xl text-xs font-medium text-white transition-all hover:brightness-110 active:scale-[0.98] whitespace-nowrap"
+                        style={{ backgroundColor: 'var(--tp-secondary)' }}>
+                        Request
+                      </button>
+                    ) : (
+                      <span className="text-[10px] px-2 py-0.5 rounded-full whitespace-nowrap"
+                        style={{ backgroundColor: 'color-mix(in srgb, #fbbf24 18%, transparent)', color: '#fbbf24' }}>
+                        In transit
+                      </span>
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
           ))}

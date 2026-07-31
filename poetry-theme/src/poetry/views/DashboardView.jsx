@@ -21,7 +21,6 @@ export default function DashboardView({
   myPoems, myPoemsCachedOnly, onNavigate,
   onNewPoem,
 }) {
-  const [shareTarget, setShareTarget] = useState(null)
   const [stats, setStats] = useState(null)
 
   useEffect(() => {
@@ -98,30 +97,20 @@ export default function DashboardView({
 
       {favoriteQuote && (
         <section className="animate-fade-in">
-          <div onClick={() => setShareTarget(favoriteQuote)} className="rounded-xl p-5 cursor-pointer transition-all duration-200 hover:scale-[1.01] active:scale-[0.99]" style={{ backgroundColor: 'var(--tp-surface)', border: '1.5px solid var(--tp-border)', boxShadow: 'var(--tp-card-shadow)' }}>
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-xs font-bold flex items-center gap-1.5" style={{ color: 'var(--tp-text)' }}>
-                <HeartIcon size={14} /> Favorite Line
-              </p>
-              <div className="flex gap-1">
-                <button onClick={() => setShareTarget(favoriteQuote)}
-                  className="p-1.5 rounded-lg transition-all hover:scale-110 active:scale-90"
-                  style={{ color: 'var(--tp-secondary)' }}
-                  aria-label="Share">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
-                    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-            <p className="text-sm font-medium leading-relaxed" style={{ color: 'var(--tp-secondary)', fontFamily: '"Playfair Display", Georgia, serif', fontStyle: 'italic' }}>
-              &ldquo;{favoriteQuote.lineText}&rdquo;
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-sm font-bold flex items-center gap-1.5" style={{ color: 'var(--tp-text)' }}>
+              <HeartIcon size={16} /> Favorite Line
             </p>
-            <p className="text-xs mt-2" style={{ color: 'var(--tp-text-secondary)' }}>
-              &mdash; {favoriteQuote.poemTitle} by {favoriteQuote.author}
-            </p>
+            {favorites.length > 1 && (
+              <span className="text-xs" style={{ color: 'var(--tp-text-secondary)' }}>Swipe card to browse</span>
+            )}
           </div>
+          <ShareQuoteModal
+            inline
+            favorite={favoriteQuote}
+            favorites={favorites}
+            initialIndex={favorites.indexOf(favoriteQuote)}
+          />
         </section>
       )}
 
@@ -245,15 +234,6 @@ export default function DashboardView({
       </section>
 
       <div className="h-4" />
-
-      {shareTarget && (
-        <ShareQuoteModal
-          favorite={shareTarget}
-          favorites={favorites}
-          initialIndex={favorites.indexOf(shareTarget)}
-          onClose={() => setShareTarget(null)}
-        />
-      )}
     </div>
   )
 }

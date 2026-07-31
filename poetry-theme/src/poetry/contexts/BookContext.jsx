@@ -1,6 +1,7 @@
-import { createContext, useContext, useCallback, useMemo } from 'react'
+import { createContext, useContext, useCallback, useMemo, useEffect } from 'react'
 import { useAuth } from '../../auth/AuthContext'
 import { useSyncedState } from './useSyncedState'
+import { apiSyncShelfBooks } from '../../api/shelfBooks'
 
 const BookContext = createContext(null)
 
@@ -14,8 +15,21 @@ export function BookProvider({ children }) {
   const [inbox, setInbox] = useSyncedState(user?.id, 'inbox', INBOX_KEY)
   const [notifs, setNotifs] = useSyncedState(user?.id, 'notifications', NOTIF_KEY)
 
+  useEffect(() => {
+    if (!user?.id) return
+    const t = setTimeout(() => {
+      apiSyncShelfBooks(user.id, shelf).catch(() => {})
+    }, 300)
+    return () => clearTimeout(t)
+  }, [shelf, user?.id])
+
   const addBook = useCallback((book) => {
-    setShelf((prev) => [{ ...book, id: Date.now(), addedAt: new Date().toISOString(), sent: false, received: false, userId: user?.id }, ...prev])
+    const loc = {
+      country: localStorage.getItem('poetry_country') || user?.country || '',
+      state: localStorage.getItem('poetry_state') || user?.state || '',
+      zip: localStorage.getItem('poetry_zip') || user?.zip || '',
+    }
+    setShelf((prev) => [{ ...book, ...loc, id: Date.now(), addedAt: new Date().toISOString(), sent: false, received: false, userId: user?.id }, ...prev])
   }, [user])
 
   const removeBook = useCallback((id) => {
