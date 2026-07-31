@@ -5,7 +5,7 @@ import DataIndicator from '../components/DataIndicator'
 import LegalLinks from '../components/LegalLinks'
 import { ClockIcon, PenIcon, BookIcon, HeartIcon } from '../components/Icons'
 import { SITE_NAME, isIndependentPoem, HERO_MISSION_TEXT, HERO_SAFETY_NOTICE } from '../../constants'
-import { apiFetchStats } from '../../api/stats'
+import { apiFetchStats, apiGetCachedStats, STATS_CACHE_TTL } from '../../api/stats'
 
 function formatCount(n) {
   if (!n) return '0'
@@ -26,9 +26,13 @@ export default function DashboardView({
 
   useEffect(() => {
     let cancelled = false
-    apiFetchStats()
-      .then((data) => { if (!cancelled) setStats(data) })
-      .catch(() => {})
+    const cached = apiGetCachedStats()
+    if (cached) setStats(cached.stats)
+    if (!cached || Date.now() - cached.ts > STATS_CACHE_TTL) {
+      apiFetchStats()
+        .then((data) => { if (!cancelled) setStats(data) })
+        .catch(() => {})
+    }
     return () => { cancelled = true }
   }, [])
 

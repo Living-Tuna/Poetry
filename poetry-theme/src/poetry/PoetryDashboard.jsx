@@ -73,6 +73,7 @@ export default function PoetryDashboard() {
     ? filteredPoems.filter((p) => (p.categories || []).includes(selectedCategory))
     : []
   const trendingScroll = useRef(null)
+  const mainRef = useRef(null)
 
   const [authMode, setAuthMode] = useState('login')
   const [aUsername, setAUsername] = useState('')
@@ -92,6 +93,10 @@ export default function PoetryDashboard() {
   const [aZip, setAZip] = useState('')
   const location = useLocation()
   const navigate = useNavigate()
+
+  useEffect(() => {
+    if (mainRef.current) mainRef.current.scrollTo(0, 0)
+  }, [bodyView])
 
   useEffect(() => {
     const seg = location.pathname.split('/')[1]
@@ -116,7 +121,6 @@ export default function PoetryDashboard() {
     localStorage.setItem('poetry_lang', code)
     setLang(code)
     setLanguagePickerOpen(false)
-    navigate(`/${code}`)
   }
 
   const closeSlide = () => { setSlideOpen(false); setAuthMode('login'); setAError(''); setSignupStep(0) }
@@ -234,19 +238,11 @@ export default function PoetryDashboard() {
 
   function handleNavigate(view) {
     setBodyView(view)
-    if (view === 'shelf') navigate('/shelf')
-    else if (view === 'blend') {
+    if (view === 'blend') {
       setBlendFocus(null)
       const zip = localStorage.getItem('poetry_zip') || user?.zip || ''
       if (user && !zip) setShowLocationModal(true)
-      navigate('/blend')
     }
-    else if (view === 'inbox') navigate('/inbox')
-    else if (view === 'notifications') navigate('/notifications')
-    else if (view === 'terms') navigate('/terms')
-    else if (view === 'privacy') navigate('/policy')
-    else if (view === 'about') navigate('/about')
-    else if (view === 'dashboard') navigate(`/${lang}`)
   }
 
   useEffect(() => {
@@ -386,7 +382,7 @@ export default function PoetryDashboard() {
       />
 
       {/* Body — view switching */}
-      <main className="flex-1 overflow-y-auto" style={{ backgroundColor: 'var(--tp-bg)' }}>
+      <main ref={mainRef} className="flex-1 overflow-y-auto" style={{ backgroundColor: 'var(--tp-bg)' }}>
         {bodyView === 'dashboard' && (
           <DashboardView
             user={user} slideOpen={slideOpen} setSlideOpen={setSlideOpen}

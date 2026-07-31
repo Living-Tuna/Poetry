@@ -3,7 +3,8 @@ const logs = [
     versionCode: '1.1.8',
     date: 'July 2026',
     features: [
-      'Blend, Shelf and Inbox now open as full pages — the header stays put and mobile browsers no longer cover it',
+      'Every page now switches in-app — Blend, Shelf, Inbox and the rest swap inside the app without changing the browser URL, so the browser header never pops up',
+      'Home stats now load instantly from local storage and refresh in the background — the welcome badge no longer waits on the network',
       'Inbox became a proper chat: conversations grouped by reader, threaded messages, unread dots, and one-tap Yes/No replies to sharing requests',
       'Requesting a book on Blend marks it as sent and drops you into the conversation with the holder',
       'A new mission and safety notice on the home screen — never share personal information and always strictly follow the Privacy Policy',
