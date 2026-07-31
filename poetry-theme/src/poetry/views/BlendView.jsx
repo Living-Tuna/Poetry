@@ -71,7 +71,7 @@ function holderSort(a, b) {
 }
 
 export default function BlendView({ onNavigate, focusQuery, onOpenAuth }) {
-  const { sendMessage, addNotif } = useBook()
+  const { sendRequest, addNotif } = useBook()
   const { user } = useAuth()
   const [query, setQuery] = useState('')
   const [busy, setBusy] = useState(false)
@@ -148,8 +148,11 @@ export default function BlendView({ onNavigate, focusQuery, onOpenAuth }) {
     }
     const key = `${book.title}|${holder.h.holder_username || holderName}`
     if (requestedKey === key) return
-    sendMessage(holder.h.holder_username || holderName, book.title,
-      `Hai, I'm interested in reading "${book.title}" can you please share.`)
+    sendRequest(holder.h.holder_username || holderName, {
+      bookTitle: book.title,
+      author: book.author || '',
+      message: `Hai, I'm interested in reading "${book.title}" can you please share.`,
+    })
     addNotif(`Request sent to ${holderName} for "${book.title}"`)
     setRequestedKey(key)
     setTimeout(() => { if (onNavigate) onNavigate('inbox') }, 700)

@@ -8,6 +8,7 @@ import Header from './components/Header'
 import MenuModal from './components/MenuModal'
 import AuthForms from './components/AuthForms'
 import CompactProfile from './components/CompactProfile'
+import PersonProfile from './components/PersonProfile'
 import { btnWhite } from './components/AuthForms'
 import WritePoemModal from './components/WritePoemModal'
 import WritingsView from './views/WritingsView'
@@ -36,10 +37,14 @@ export default function PoetryDashboard() {
     navigateToPoem, myPoems, addMyPoem, updateMyPoem, deleteMyPoem,
     editRequest, setEditRequest, recentlyViewed, allPoems,
     editOnOpen, setEditOnOpen, myPoemsCachedOnly,
+    reading,
   } = usePoetry()
-  const { shelf, inbox, inboxUnread, unreadCount } = useBook()
+  const { shelf, inbox, inboxUnread, unreadCount, notifs } = useBook()
   const [lang, setLang] = useState(localStorage.getItem('poetry_lang') || 'en')
   const [languagePickerOpen, setLanguagePickerOpen] = useState(false)
+  const [chatContact, setChatContact] = useState(null)
+  const [showPersonProfile, setShowPersonProfile] = useState(false)
+  const [notice, setNotice] = useState(null)
   const filteredPoems = allPoems.filter((p) => (p.language || 'en') === lang)
   const trending = filteredPoems.length > 0
     ? [...filteredPoems]
@@ -238,11 +243,49 @@ export default function PoetryDashboard() {
 
   function handleNavigate(view) {
     setBodyView(view)
+    if (view !== 'inbox') setChatContact(null)
     if (view === 'blend') {
       setBlendFocus(null)
       const zip = localStorage.getItem('poetry_zip') || user?.zip || ''
       if (user && !zip) setShowLocationModal(true)
     }
+  }
+
+  const seenMsgIds = useRef(new Set())
+  const seenNotifIds = useRef(new Set())
+
+  useEffect(() => {
+    const fresh = inbox.filter((m) => !seenMsgIds.current.has(m.id))
+    if (fresh.length > 0) {
+      const newest = inbox.find((m) => fresh.includes(m.id))
+      if (newest && newest.from !== user?.username && !newest.read) {
+        setNotice({ text: `New message from ${newest.from}`, action: () => handleNavigate('inbox') })
+      }
+      fresh.forEach((m) => seenMsgIds.current.add(m.id))
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inbox, user])
+
+  useEffect(() => {
+    const fresh = notifs.filter((n) => !seenNotifIds.current.has(n.id))
+    if (fresh.length > 0) {
+      const n = notifs.find((x) => fresh.includes(x.id))
+      if (n) setNotice({ text: n.text, action: () => handleNavigate('notifications') })
+      fresh.forEach((x) => seenNotifIds.current.add(x.id))
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [notifs])
+
+  useEffect(() => {
+    if (!notice) return
+    const t = setTimeout(() => setNotice(null), 3000)
+    return () => clearTimeout(t)
+  }, [notice])
+
+  function handleNoticeClick() {
+    const action = notice?.action
+    setNotice(null)
+    if (action) action()
   }
 
   useEffect(() => {
@@ -282,7 +325,19 @@ export default function PoetryDashboard() {
         view={bodyView}
         onOpenBooks={(title) => { console.log('[Dashboard] onOpenBooks', title); setBlendFocus({ q: title || '', n: Date.now() }) }}
         onOpenFavorites={(fav) => { console.log('[Dashboard] onOpenFavorites', fav?.key); setFocusFavorite(fav || null); handleNavigate('favorites') }}
+        chatContact={chatContact}
+        onChatBack={() => setChatContact(null)}
+        onChatProfile={() => setShowPersonProfile(true)}
+        notice={notice}
+        onNoticeClick={handleNoticeClick}
       />
+
+      {showPersonProfile && chatContact && (
+        <PersonProfile
+          username={chatContact}
+          onClose={() => setShowPersonProfile(false)}
+        />
+      )}
 
       {/* ─── Slide-down panel ─── */}
       <div
@@ -338,6 +393,7 @@ export default function PoetryDashboard() {
                 shelfCount={shelf.length}
                 inboxUnread={inboxUnread}
                 unreadCount={unreadCount}
+                streak={reading?.streakCurrent || 0}
               />
             )}
           </div>
@@ -445,7 +501,13 @@ export default function PoetryDashboard() {
             onOpenAuth={() => { setAuthMode('login'); setSlideOpen(true) }}
           />
         )}
-        {bodyView === 'inbox' && <InboxView onNavigate={handleNavigate} />}
+        {bodyView === 'inbox' && (
+          <InboxView
+            onNavigate={handleNavigate}
+            openContact={chatContact}
+            onOpenContact={setChatContact}
+          />
+        )}
         {bodyView === 'notifications' && <NotificationsView onNavigate={handleNavigate} />}
         {bodyView === 'settings' && <Settings onNavigate={handleNavigate} />}
         {bodyView === 'changelog' && <ChangelogView onNavigate={handleNavigate} />}

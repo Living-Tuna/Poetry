@@ -1,12 +1,28 @@
 const logs = [
   {
+    versionCode: '1.2.0',
+    date: 'July 2026',
+    features: [
+      'Book exchanges are now a guided flow — request a book on Blend and the holder gets asked whether to share it; only after they say yes do you get asked if you received it, and confirming adds it straight to your shelf',
+      'Chats have their own header — a back button, the person\'s name, and a profile button that opens their full profile',
+      'Reader profiles: see any reader\'s favorite lines, bookshelf, recently read, frequently read, and their reading streak',
+      'New reading streaks — read daily to grow your streak, visible on your profile and on every reader profile',
+      'New inbox messages and notifications flash in the header for 3 seconds, then the header returns to normal',
+    ],
+  },
+  {
+    versionCode: '1.1.9',
+    date: 'July 2026',
+    features: [
+      'Home stats now load instantly from local storage and refresh in the background',
+      'Everything now switches in-app — no more browser URL jumps on Blend, Shelf or Inbox',
+    ],
+  },
+  {
     versionCode: '1.1.8',
     date: 'July 2026',
     features: [
-      'Every page now switches in-app — Blend, Shelf, Inbox and the rest swap inside the app without changing the browser URL, so the browser header never pops up',
-      'Home stats now load instantly from local storage and refresh in the background — the welcome badge no longer waits on the network',
       'Inbox became a proper chat: conversations grouped by reader, threaded messages, unread dots, and one-tap Yes/No replies to sharing requests',
-      'Requesting a book on Blend marks it as sent and drops you into the conversation with the holder',
       'A new mission and safety notice on the home screen — never share personal information and always strictly follow the Privacy Policy',
       'Terms, Privacy Policy and About pages — now full pages you can open from the menu or page footers',
       'Smoother mobile experience — no accidental pinch-zoom, no overscroll bounce, and proper notched-screen support',

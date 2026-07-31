@@ -20,7 +20,7 @@ export async function apiResolveUser(username) {
   return data[0]
 }
 
-export async function apiSendMessage({ senderId, recipientId, senderUsername, recipientUsername, bookTitle, message }) {
+export async function apiSendMessage({ senderId, recipientId, senderUsername, recipientUsername, bookTitle, message, kind = 'chat', requestId = null, author = '' }) {
   const { data, error } = await supabase
     .from('messages')
     .insert({
@@ -30,6 +30,9 @@ export async function apiSendMessage({ senderId, recipientId, senderUsername, re
       recipient_username: recipientUsername,
       book_title: bookTitle || '',
       message,
+      kind,
+      request_id: requestId,
+      author,
     })
     .select('*')
     .single()
@@ -59,6 +62,9 @@ export function toClientMessage(row) {
     to: row.recipient_username,
     bookTitle: row.book_title,
     message: row.message,
+    kind: row.kind || 'chat',
+    requestId: row.request_id || null,
+    author: row.author || '',
     timestamp: row.created_at,
     read: row.read,
     pending: false,

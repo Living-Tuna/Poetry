@@ -2,12 +2,14 @@ import { createContext, useContext, useState, useCallback, useMemo, useRef, useE
 import { useAuth } from '../auth/AuthContext'
 import { apiFetchAllPoems, apiAddPoem, apiUpdatePoem, apiDeletePoem, apiSetPoemLike } from '../api/poems'
 import { apiFetchUserPoems } from '../api/profile'
+import { computeStreak, bumpFrequently, pushRecent, apiSaveReadingStats } from '../api/reading'
 import { useSyncedState } from './contexts/useSyncedState'
 import { isIndependentPoem } from '../constants'
 
 const MY_POEMS_KEY = 'poetry-my-poems'
 const RECENT_KEY = 'poetry-recently-viewed'
 const LIKED_KEY = 'poetry-liked-poems'
+const READING_KEY = 'poetry-reading'
 const MAX_RECENT = 8
 
 function prefixedKey(prefix, username) {
@@ -42,6 +44,44 @@ export function PoetryProvider({ children }) {
   const likedRef = useRef(new Set(likedPoems))
   const loadedIds = useRef(new Set())
   const allRef = useRef([])
+  const [reading, setReading] = useState(null)
+  const readingRef = useRef(null)
+  const saveReadingRef = useRef(null)
+
+  const readingKey = prefixedKey(READING_KEY, user?.username)
+
+  useEffect(() => {
+    if (user) {
+      let parsed = null
+      try { parsed = JSON.parse(localStorage.getItem(readingKey)) || null } catch { parsed = null }
+      readingRef.current = parsed
+      setReading(parsed)
+    } else {
+      readingRef.current = null
+      setReading(null)
+    }
+  }, [readingKey, user])
+
+  const recordRead = useCallback((poem) => {
+    if (!user || !poem) return
+    const prev = readingRef.current || { streakCurrent: 0, streakBest: 0, lastDay: '', recentlyRead: [], frequentlyRead: [] }
+    const streak = computeStreak({ current: prev.streakCurrent, best: prev.streakBest, lastDay: prev.lastDay })
+    const item = { title: poem.title || 'Untitled', author: poem.author || '', ts: Date.now() }
+    const next = {
+      streakCurrent: streak.current,
+      streakBest: streak.best,
+      lastDay: streak.lastDay,
+      recentlyRead: pushRecent(prev.recentlyRead, item),
+      frequentlyRead: bumpFrequently(prev.frequentlyRead, item.title),
+    }
+    readingRef.current = next
+    setReading(next)
+    try { localStorage.setItem(readingKey, JSON.stringify(next)) } catch {}
+    if (saveReadingRef.current) clearTimeout(saveReadingRef.current)
+    saveReadingRef.current = setTimeout(() => {
+      apiSaveReadingStats(user.id, next).catch(() => {})
+    }, 1200)
+  }, [user, readingKey])
 
   useEffect(() => {
     const arr = loadArray(prefixedKey(LIKED_KEY, user?.username))
@@ -124,6 +164,8 @@ export function PoetryProvider({ children }) {
 
   const swipeRight = useCallback(() => {
     if (index < queue.length - 1) {
+      const nextPoem = queue[index + 1]
+      if (nextPoem) recordRead(nextPoem)
       setIndex((i) => i + 1)
       setExpanded(false)
       return
@@ -135,8 +177,9 @@ export function PoetryProvider({ children }) {
       setQueue((prev) => [...prev, next])
       setIndex((i) => i + 1)
       setExpanded(false)
+      recordRead(next)
     }
-  }, [index, queue.length])
+  }, [index, queue.length, recordRead])
 
   const swipeLeft = useCallback(() => {
     if (index > 0) {
@@ -168,7 +211,8 @@ export function PoetryProvider({ children }) {
     setExpanded(false)
     setFullscreen(true)
     addToRecentlyViewed(poem)
-  }, [queue, addToRecentlyViewed])
+    recordRead(poem)
+  }, [queue, addToRecentlyViewed, recordRead])
 
   const addMyPoem = useCallback(async (poem) => {
     if (!user) return
@@ -289,6 +333,7 @@ export function PoetryProvider({ children }) {
     editRequest, setEditRequest, editOnOpen, setEditOnOpen,
     recentlyViewed, addToRecentlyViewed,
     myPoemsCachedOnly,
+    reading, recordRead,
   }), [currentPoem, queue, index, expanded, loading, allPoems, fullscreen,
       canSwipeLeft, canSwipeRight,
       swipeRight, swipeLeft, enqueueNext, setExpanded, resetQueue,
@@ -298,7 +343,7 @@ export function PoetryProvider({ children }) {
       myPoems, addMyPoem, updateMyPoem, deleteMyPoem, isUserPoem,
       editRequest, setEditRequest, editOnOpen, setEditOnOpen,
       recentlyViewed, addToRecentlyViewed,
-      myPoemsCachedOnly])
+      myPoemsCachedOnly, reading, recordRead])
 
   return (
     <PoetryContext.Provider value={ctx}>

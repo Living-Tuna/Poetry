@@ -10,7 +10,7 @@ function ProfileNavItem({ icon, label, onClick }) {
   )
 }
 
-export default function CompactProfile({ user, myPoems, favorites, myPoemsCachedOnly, onNavigate, onClose, onLogout, shelfCount, inboxUnread, unreadCount }) {
+export default function CompactProfile({ user, myPoems, favorites, myPoemsCachedOnly, onNavigate, onClose, onLogout, shelfCount, inboxUnread, unreadCount, streak }) {
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-4">
@@ -32,7 +32,7 @@ export default function CompactProfile({ user, myPoems, favorites, myPoemsCached
       <div className="flex justify-center gap-8 mb-5">
         <div className="text-center">
           <p className={`text-lg font-bold ${myPoems.length > 0 ? '' : 'opacity-50'}`}>{myPoems.length}</p>
-          <p className="text-xs" style={{ color: 'rgba(255,255,255,0.6)' }}>Poems</p>
+          <p className="text-xs" style={{ color: 'rgba(255,255,255,0.6)' }}>Writings</p>
         </div>
         <div className="text-center">
           <p className={`text-lg font-bold ${favorites.length > 0 ? '' : 'opacity-50'}`}>{favorites.length}</p>
@@ -41,6 +41,10 @@ export default function CompactProfile({ user, myPoems, favorites, myPoemsCached
         <div className="text-center">
           <p className={`text-lg font-bold ${shelfCount > 0 ? '' : 'opacity-50'}`}>{shelfCount}</p>
           <p className="text-xs" style={{ color: 'rgba(255,255,255,0.6)' }}>Shelf</p>
+        </div>
+        <div className="text-center">
+          <p className={`text-lg font-bold ${streak > 0 ? '' : 'opacity-50'}`}>{streak}</p>
+          <p className="text-xs" style={{ color: 'rgba(255,255,255,0.6)' }}>Streak</p>
         </div>
       </div>
 

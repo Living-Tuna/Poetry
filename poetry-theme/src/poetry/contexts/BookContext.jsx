@@ -75,13 +75,16 @@ export function BookProvider({ children }) {
     }
   }, [user?.id, setInbox])
 
-  const addBook = useCallback((book) => {
+  const addBook = useCallback((book, flags = {}) => {
     const loc = {
       country: localStorage.getItem('poetry_country') || user?.country || '',
       state: localStorage.getItem('poetry_state') || user?.state || '',
       zip: localStorage.getItem('poetry_zip') || user?.zip || '',
     }
-    setShelf((prev) => [{ ...book, ...loc, id: Date.now(), addedAt: new Date().toISOString(), sent: false, received: false, userId: user?.id }, ...prev])
+    setShelf((prev) => [{
+      ...book, ...loc, id: Date.now(), addedAt: new Date().toISOString(),
+      sent: !!flags.sent, received: !!flags.received, userId: user?.id,
+    }, ...prev])
   }, [user])
 
   const removeBook = useCallback((id) => {
@@ -92,26 +95,37 @@ export function BookProvider({ children }) {
     setShelf((prev) => prev.map((b) => b.id === id ? { ...b, sent: true } : b))
   }, [])
 
+  const markSentByTitle = useCallback((title) => {
+    const t = String(title || '').trim().toLowerCase()
+    if (!t) return
+    setShelf((prev) => prev.map((b) =>
+      String(b.title || '').trim().toLowerCase() === t ? { ...b, sent: true } : b))
+  }, [setShelf])
+
   const markReceived = useCallback((id) => {
     setShelf((prev) => prev.map((b) => b.id === id ? { ...b, received: true } : b))
   }, [])
 
-  const sendMessage = useCallback(async (to, bookTitle, message) => {
+  const persistMessage = useCallback(async (to, fields) => {
     const from = user?.username || 'Anonymous'
     const msg = {
       id: Date.now(),
       from,
       to,
-      bookTitle,
-      message,
+      bookTitle: fields.bookTitle || '',
+      message: fields.message,
+      kind: fields.kind || 'chat',
+      requestId: fields.requestId || null,
+      author: fields.author || '',
       timestamp: new Date().toISOString(),
       read: false,
       pending: true,
     }
     if (inbox.some((m) =>
       m.from === msg.from && m.to === msg.to &&
-      m.bookTitle === msg.bookTitle && m.message === msg.message && !m.pending)) {
-      return
+      m.bookTitle === msg.bookTitle && m.message === msg.message &&
+      m.kind === msg.kind && m.requestId === msg.requestId && !m.pending)) {
+      return msg
     }
     setInbox((prev) => [msg, ...prev])
     try {
@@ -122,8 +136,11 @@ export function BookProvider({ children }) {
         recipientId: recipient.id,
         senderUsername: from,
         recipientUsername: to,
-        bookTitle,
-        message,
+        bookTitle: msg.bookTitle,
+        message: msg.message,
+        kind: msg.kind,
+        requestId: msg.requestId,
+        author: msg.author,
       })
       setInbox((prev) => {
         const mapped = prev.map((m) => (m.id === msg.id ? { ...m, id: row.id, pending: false, failed: false } : m))
@@ -133,7 +150,37 @@ export function BookProvider({ children }) {
     } catch {
       setInbox((prev) => prev.map((m) => m.id === msg.id ? { ...m, failed: true } : m))
     }
+    return msg
   }, [user, inbox, setInbox])
+
+  const sendMessage = useCallback((to, bookTitle, message) => {
+    return persistMessage(to, { bookTitle, message })
+  }, [persistMessage])
+
+  const sendRequest = useCallback((to, { bookTitle, author = '', message }) => {
+    const requestId = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`
+    return persistMessage(to, { bookTitle, author, message, kind: 'request', requestId })
+  }, [persistMessage])
+
+  const respondToRequest = useCallback((to, { requestId, bookTitle, author = '', agree }) => {
+    if (agree) markSentByTitle(bookTitle)
+    const message = agree
+      ? `Yes, I can share "${bookTitle}" — I'm sending it to you.`
+      : `Sorry, I can't share "${bookTitle}" right now.`
+    return persistMessage(to, {
+      bookTitle, author, message,
+      kind: agree ? 'share_yes' : 'share_no', requestId,
+    })
+  }, [persistMessage, markSentByTitle])
+
+  const confirmReceived = useCallback((to, { requestId, bookTitle, author = '' }) => {
+    addBook({ title: bookTitle, author }, { received: true })
+    return persistMessage(to, {
+      bookTitle, author,
+      message: `I received "${bookTitle}". Thank you!`,
+      kind: 'received_yes', requestId,
+    })
+  }, [persistMessage, addBook])
 
   const markRead = useCallback((id) => {
     setInbox((prev) => prev.map((m) => m.id === id ? { ...m, read: true } : m))
@@ -154,10 +201,12 @@ export function BookProvider({ children }) {
   const inboxUnread = useMemo(() => inbox.filter((m) => !m.read).length, [inbox])
 
   const ctx = useMemo(() => ({
-    shelf, addBook, removeBook, markSent, markReceived,
-    inbox, sendMessage, markRead, inboxUnread,
+    shelf, addBook, removeBook, markSent, markSentByTitle, markReceived,
+    inbox, sendMessage, sendRequest, respondToRequest, confirmReceived, markRead, inboxUnread,
     notifs, addNotif, markNotifRead, clearNotifs, unreadCount,
-  }), [shelf, inbox, notifs, addBook, removeBook, markSent, markReceived, sendMessage, markRead, addNotif, markNotifRead, clearNotifs, unreadCount, inboxUnread])
+  }), [shelf, inbox, notifs, addBook, removeBook, markSent, markSentByTitle, markReceived,
+      sendMessage, sendRequest, respondToRequest, confirmReceived, markRead, addNotif,
+      markNotifRead, clearNotifs, unreadCount, inboxUnread])
 
   return <BookContext.Provider value={ctx}>{children}</BookContext.Provider>
 }

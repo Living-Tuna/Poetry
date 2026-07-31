@@ -10,12 +10,12 @@ function fmtTime(ts) {
   }
 }
 
-export default function InboxView({ onNavigate }) {
-  const { inbox, markRead, sendMessage, addNotif } = useBook()
+export default function InboxView({ onNavigate, openContact, onOpenContact }) {
+  const { inbox, markRead, sendMessage, respondToRequest, confirmReceived, addNotif } = useBook()
   const { user } = useAuth()
   const me = user?.username || ''
-  const [openContact, setOpenContact] = useState(null)
   const [replyMsg, setReplyMsg] = useState('')
+  const [dismissedReceived, setDismissedReceived] = useState(() => new Set())
 
   const conversations = useMemo(() => {
     const map = new Map()
@@ -38,9 +38,27 @@ export default function InboxView({ onNavigate }) {
     }
   }, [openContact]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const lastIncoming = openConv ? [...openConv.messages].reverse().find((m) => m.from !== me) : null
-  const lastOutgoing = openConv ? [...openConv.messages].reverse().find((m) => m.from === me) : null
-  const needsReply = !!lastIncoming && (!lastOutgoing || new Date(lastIncoming.timestamp) > new Date(lastOutgoing.timestamp))
+  const pendingRequest = useMemo(() => {
+    if (!openConv) return null
+    return openConv.messages.find((m) =>
+      m.kind === 'request' && m.from !== me &&
+      !openConv.messages.some((x) =>
+        x.requestId === m.requestId && (x.kind === 'share_yes' || x.kind === 'share_no')))
+  }, [openConv, me])
+
+  const pendingReceived = useMemo(() => {
+    if (!openConv) return null
+    return openConv.messages.find((m) =>
+      m.kind === 'share_yes' && m.from !== me &&
+      !dismissedReceived.has(m.requestId) &&
+      !openConv.messages.some((x) =>
+        x.requestId === m.requestId && x.kind === 'received_yes'))
+  }, [openConv, me, dismissedReceived])
+
+  const msgAuthor = (requestId) => {
+    const req = openConv?.messages.find((m) => m.requestId === requestId)
+    return req?.author || ''
+  }
 
   function handleSendReply() {
     if (!openConv || !replyMsg.trim()) return
@@ -51,14 +69,37 @@ export default function InboxView({ onNavigate }) {
     setReplyMsg('')
   }
 
-  function handleQuickReply(choice) {
-    if (!openConv || !lastIncoming) return
-    const bookTitle = lastIncoming.bookTitle || ''
-    const text = choice === 'yes'
-      ? `Yes, I'd be happy to share "${bookTitle}"!`
-      : `Sorry, I can't share "${bookTitle}" right now.`
-    sendMessage(openConv.contact, bookTitle, text)
-    addNotif(`Reply sent to ${openConv.contact}`)
+  function handleShareDecision(agree) {
+    if (!pendingRequest) return
+    respondToRequest(openConv.contact, {
+      requestId: pendingRequest.requestId,
+      bookTitle: pendingRequest.bookTitle,
+      author: pendingRequest.author,
+      agree,
+    })
+    addNotif(agree
+      ? `You agreed to share "${pendingRequest.bookTitle}" with ${openConv.contact}`
+      : `You declined sharing "${pendingRequest.bookTitle}"`)
+  }
+
+  function handleReceivedConfirm(received) {
+    if (!pendingReceived) return
+    if (received) {
+      confirmReceived(openConv.contact, {
+        requestId: pendingReceived.requestId,
+        bookTitle: pendingReceived.bookTitle,
+        author: msgAuthor(pendingReceived.requestId),
+      })
+      addNotif(`"${pendingReceived.bookTitle}" added to your shelf`)
+    } else {
+      setDismissedReceived((prev) => {
+        const next = new Set(prev)
+        next.add(pendingReceived.requestId)
+        return next
+      })
+      sendMessage(openConv.contact, pendingReceived.bookTitle, 'Not yet received.')
+      addNotif('Marked as not received yet')
+    }
   }
 
   const header = (
@@ -80,36 +121,28 @@ export default function InboxView({ onNavigate }) {
     const thread = openConv.messages
     return (
       <div className="min-h-full flex flex-col px-4 py-6 max-w-2xl mx-auto animate-fade-in">
-        <div className="flex items-center gap-3 mb-4">
-          <button onClick={() => setOpenContact(null)}
-            className="p-1.5 rounded-xl transition-opacity hover:opacity-70"
-            style={{ color: 'var(--tp-text-secondary)' }} aria-label="Back">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <path d="M15 18l-6-6 6-6" />
-            </svg>
-          </button>
-          <div className="min-w-0">
-            <p className="text-lg font-bold leading-tight truncate" style={{ color: 'var(--tp-text)', fontFamily: '"Playfair Display", Georgia, serif' }}>
-              {openConv.contact}
-            </p>
-            <p className="text-[10px]" style={{ color: 'var(--tp-text-secondary)' }}>{thread.length} message{thread.length > 1 ? 's' : ''}</p>
-          </div>
-        </div>
-
         <div className="flex-1 space-y-2 overflow-y-auto pb-3">
           {thread.map((m) => {
             const mine = m.from === me
+            const kind = m.kind || 'chat'
+            const isYes = kind === 'share_yes' || kind === 'received_yes'
+            const label = kind === 'request' ? 'Book request'
+              : kind === 'share_yes' ? (mine ? 'Shared' : 'Shared with you')
+                : kind === 'share_no' ? 'Declined'
+                  : kind === 'received_yes' ? (mine ? 'Received' : 'Exchange complete')
+                    : m.bookTitle || ''
+            const bubbleStyle = {
+              backgroundColor: mine
+                ? (isYes ? '#16a34a' : 'var(--tp-secondary)')
+                : (isYes ? 'color-mix(in srgb, #22c55e 16%, transparent)' : 'var(--tp-surface)'),
+              color: mine ? '#fff' : (isYes ? '#22c55e' : 'var(--tp-text)'),
+              borderRadius: mine ? '1rem 1rem 0.125rem 1rem' : '1rem 1rem 1rem 0.125rem',
+              border: isYes && !mine ? '1px solid color-mix(in srgb, #22c55e 40%, transparent)' : 'none',
+            }
             return (
               <div key={m.id} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
-                <div className="max-w-[80%] rounded-xl px-3.5 py-2.5"
-                  style={{
-                    backgroundColor: mine ? 'var(--tp-secondary)' : 'var(--tp-surface)',
-                    color: mine ? '#fff' : 'var(--tp-text)',
-                    borderRadius: mine ? '1rem 1rem 0.125rem 1rem' : '1rem 1rem 1rem 0.125rem',
-                  }}>
-                  {m.bookTitle && (
-                    <p className="text-[10px] font-semibold mb-0.5" style={{ opacity: 0.7 }}>{m.bookTitle}</p>
-                  )}
+                <div className={`max-w-[80%] rounded-xl px-3.5 py-2.5 ${kind !== 'chat' ? 'animate-pop-in' : ''}`} style={bubbleStyle}>
+                  {label && <p className="text-[10px] font-semibold mb-0.5" style={{ opacity: 0.75 }}>{label}</p>}
                   <p className="text-sm leading-relaxed whitespace-pre-wrap">{m.message}</p>
                   <p className="text-[10px] mt-1" style={{ opacity: 0.6 }}>{fmtTime(m.timestamp)}</p>
                 </div>
@@ -118,18 +151,33 @@ export default function InboxView({ onNavigate }) {
           })}
         </div>
 
-        {needsReply && (
-          <div className="flex items-center gap-2 mb-3 p-3 rounded-xl"
+        {pendingRequest && (
+          <div className="flex items-center gap-2 mb-3 p-3 rounded-xl animate-pop-in"
             style={{ backgroundColor: 'color-mix(in srgb, var(--tp-secondary) 10%, transparent)', border: '1px solid var(--tp-border)' }}>
             <span className="text-xs font-semibold flex-1" style={{ color: 'var(--tp-text-secondary)' }}>
-              Can you share this book?
+              {openConv.contact} wants to borrow "{pendingRequest.bookTitle}". Would you like to share?
             </span>
-            <button onClick={() => handleQuickReply('yes')}
+            <button onClick={() => handleShareDecision(true)}
               className="px-4 py-1.5 rounded-xl text-xs font-medium text-white transition-all hover:brightness-110 active:scale-[0.97]"
               style={{ backgroundColor: '#22c55e' }}>Yes</button>
-            <button onClick={() => handleQuickReply('no')}
+            <button onClick={() => handleShareDecision(false)}
               className="px-4 py-1.5 rounded-xl text-xs font-medium transition-all hover:brightness-110 active:scale-[0.97]"
               style={{ color: '#f87171', backgroundColor: 'color-mix(in srgb, #f87171 15%, transparent)', border: '1px solid color-mix(in srgb, #f87171 40%, transparent)' }}>No</button>
+          </div>
+        )}
+
+        {pendingReceived && (
+          <div className="flex items-center gap-2 mb-3 p-3 rounded-xl animate-pop-in"
+            style={{ backgroundColor: 'color-mix(in srgb, #22c55e 10%, transparent)', border: '1px solid color-mix(in srgb, #22c55e 35%, transparent)' }}>
+            <span className="text-xs font-semibold flex-1" style={{ color: 'var(--tp-text-secondary)' }}>
+              {openConv.contact} shared "{pendingReceived.bookTitle}" with you. Did you receive it?
+            </span>
+            <button onClick={() => handleReceivedConfirm(true)}
+              className="px-4 py-1.5 rounded-xl text-xs font-medium text-white transition-all hover:brightness-110 active:scale-[0.97]"
+              style={{ backgroundColor: '#22c55e' }}>Yes</button>
+            <button onClick={() => handleReceivedConfirm(false)}
+              className="px-4 py-1.5 rounded-xl text-xs font-medium transition-all hover:brightness-110 active:scale-[0.97]"
+              style={{ color: 'var(--tp-text-secondary)', backgroundColor: 'color-mix(in srgb, var(--tp-text-secondary) 12%, transparent)', border: '1px solid var(--tp-border)' }}>Not yet</button>
           </div>
         )}
 
@@ -171,7 +219,7 @@ export default function InboxView({ onNavigate }) {
             const last = c.messages[c.messages.length - 1]
             const unread = c.messages.some((m) => !m.read)
             return (
-              <div key={c.contact} onClick={() => setOpenContact(c.contact)}
+              <div key={c.contact} onClick={() => onOpenContact(c.contact)}
                 className="rounded-xl p-4 transition-all duration-200 cursor-pointer hover:scale-[1.01]"
                 style={{ backgroundColor: 'var(--tp-surface)', border: `1.5px solid ${unread ? 'var(--tp-secondary)' : 'var(--tp-border)'}` }}>
                 <div className="flex items-start justify-between gap-3">

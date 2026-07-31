@@ -16,6 +16,8 @@ export default function Header({
   onMenuToggle, onProfileToggle, lang, onLangClick,
   allPoems, onSearchSelect, favorites, view,
   onOpenBooks, onOpenFavorites,
+  chatContact, onChatBack, onChatProfile,
+  notice, onNoticeClick,
 }) {
   const scope = SCOPES[view] || 'poems'
   const [searchOpen, setSearchOpen] = useState(false)
@@ -150,17 +152,62 @@ export default function Header({
 
   const closeSearch = () => { console.log('[Header] closeSearch'); setSearchOpen(false); setQuery('') }
 
+  const isChat = !!chatContact
+
   return (
     <>
       <header
         ref={headerRef}
-        className="flex-shrink-0 z-30 px-4 py-3 flex items-center gap-2"
+        className="flex-shrink-0 z-30 px-4 py-3 flex items-center gap-2 relative overflow-hidden"
         style={{
           backgroundColor: 'var(--tp-header-bg)',
           color: 'var(--tp-header-text)',
           boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
         }}
       >
+        {notice ? (
+          <button
+            onClick={onNoticeClick}
+            className="absolute inset-0 flex items-center gap-2 px-4 animate-fade-in"
+            style={{
+              backgroundColor: 'var(--tp-header-bg)',
+              color: 'var(--tp-header-text)',
+              cursor: 'pointer',
+              zIndex: 5,
+            }}
+            aria-label="View notification"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 opacity-80">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+              <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+            </svg>
+            <span className="text-sm font-medium truncate">{notice.text}</span>
+          </button>
+        ) : isChat ? (
+          <>
+            <button onClick={onChatBack} className="p-1.5 rounded-xl transition-opacity hover:opacity-70 flex-shrink-0" aria-label="Back to inbox">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M15 18l-6-6 6-6" />
+              </svg>
+            </button>
+            <div className="min-w-0 flex-1">
+              <p className="text-base font-bold leading-tight truncate" style={{ fontFamily: '"Playfair Display", Georgia, serif' }}>
+                {chatContact}
+              </p>
+              <p className="text-[10px] opacity-60">Conversation</p>
+            </div>
+            <button onClick={onChatProfile} className="p-1.5 rounded-xl transition-opacity hover:opacity-70 flex-shrink-0" aria-label="View profile">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="8" r="5" /><path d="M3 21v-2a7 7 0 0 1 7-7h4a7 7 0 0 1 7 7v2" />
+              </svg>
+            </button>
+          </>
+        ) : (
+        <></>
+        )}
+
+        {!notice && !isChat && (
+        <>
         <button onClick={onMenuToggle} className="p-1.5 rounded-xl transition-opacity hover:opacity-70 flex-shrink-0" aria-label="Menu">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
             <path d="M4 6h16M4 12h16M4 18h16" />
@@ -229,6 +276,8 @@ export default function Header({
               </svg>
             </button>
           </div>
+        )}
+        </>
         )}
       </header>
 
