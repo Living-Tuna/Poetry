@@ -111,6 +111,21 @@ export default function MenuModal({ open, onClose, onSettings, onWriteNow, onFav
         <div className="mt-auto pt-4 space-y-0.5" style={{ borderTop: '1px solid var(--tp-border)' }}>
           <MenuBtn icon={
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+            </svg>
+          } label="Terms" onClick={() => { onNavigate('terms'); onClose() }} subtle />
+          <MenuBtn icon={
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+            </svg>
+          } label="Privacy Policy" onClick={() => { onNavigate('privacy'); onClose() }} subtle />
+          <MenuBtn icon={
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <circle cx="12" cy="12" r="10" /><path d="M12 16v-4M12 8h.01" />
+            </svg>
+          } label="About" onClick={() => { onNavigate('about'); onClose() }} subtle />
+          <MenuBtn icon={
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <polyline points="12 8 8 12 12 16" /><polyline points="16 8 12 12 16 16" />
             </svg>
           } label={<span>Changelog <span className="text-[10px] font-normal" style={{ color: 'var(--tp-text-secondary)' }}>v{logs[0].versionCode}</span></span>}

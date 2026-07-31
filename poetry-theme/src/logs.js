@@ -1,5 +1,17 @@
 const logs = [
   {
+    versionCode: '1.1.8',
+    date: 'July 2026',
+    features: [
+      'Blend, Shelf and Inbox now open as full pages — the header stays put and mobile browsers no longer cover it',
+      'Inbox became a proper chat: conversations grouped by reader, threaded messages, unread dots, and one-tap Yes/No replies to sharing requests',
+      'Requesting a book on Blend marks it as sent and drops you into the conversation with the holder',
+      'A new mission and safety notice on the home screen — never share personal information and always strictly follow the Privacy Policy',
+      'Terms, Privacy Policy and About pages — now full pages you can open from the menu or page footers',
+      'Smoother mobile experience — no accidental pinch-zoom, no overscroll bounce, and proper notched-screen support',
+    ],
+  },
+  {
     versionCode: '1.1.4',
     date: 'July 2026',
     features: [

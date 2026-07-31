@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useBook } from '../contexts/BookContext'
+import LegalLinks from '../components/LegalLinks'
 
 export default function ShelfView({ onNavigate }) {
   const { shelf, addBook, removeBook, markSent, markReceived } = useBook()
@@ -169,6 +170,10 @@ export default function ShelfView({ onNavigate }) {
           {showForm ? 'Cancel' : '+ Add Another Book'}
         </button>
       )}
+
+      <div className="pt-4 pb-2 mt-6" style={{ borderTop: '1px solid var(--tp-border)' }}>
+        <LegalLinks onNavigate={onNavigate} />
+      </div>
     </div>
   )
 }

@@ -14,6 +14,7 @@ import WritingsView from './views/WritingsView'
 import FavoritesView from './views/FavoritesView'
 import TermsView from './views/TermsView'
 import PrivacyView from './views/PrivacyView'
+import AboutView from './views/AboutView'
 import CategoriesView from './views/CategoriesView'
 import CategoryPoemsView from './views/CategoryPoemsView'
 import DashboardView from './views/DashboardView'
@@ -105,6 +106,9 @@ export default function PoetryDashboard() {
     else if (seg === 'blend') setBodyView('blend')
     else if (seg === 'inbox') setBodyView('inbox')
     else if (seg === 'notifications') setBodyView('notifications')
+    else if (seg === 'terms') setBodyView('terms')
+    else if (seg === 'policy') setBodyView('privacy')
+    else if (seg === 'about') setBodyView('about')
     else if (seg) navigate(`/${lang}`)
   }, [location.pathname, lang, navigate])
 
@@ -239,6 +243,9 @@ export default function PoetryDashboard() {
     }
     else if (view === 'inbox') navigate('/inbox')
     else if (view === 'notifications') navigate('/notifications')
+    else if (view === 'terms') navigate('/terms')
+    else if (view === 'privacy') navigate('/policy')
+    else if (view === 'about') navigate('/about')
     else if (view === 'dashboard') navigate(`/${lang}`)
   }
 
@@ -415,6 +422,7 @@ export default function PoetryDashboard() {
         )}
         {bodyView === 'terms' && <TermsView onNavigate={handleNavigate} />}
         {bodyView === 'privacy' && <PrivacyView onNavigate={handleNavigate} />}
+        {bodyView === 'about' && <AboutView onNavigate={handleNavigate} />}
         {bodyView === 'categories' && (
           <CategoriesView
             categories={uniqueCategories.map((name) => ({

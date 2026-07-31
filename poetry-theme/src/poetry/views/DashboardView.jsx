@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react'
 import PoetryCard from '../PoetryCard'
 import ShareQuoteModal from '../components/ShareQuoteModal'
 import DataIndicator from '../components/DataIndicator'
+import LegalLinks from '../components/LegalLinks'
 import { ClockIcon, PenIcon, BookIcon, HeartIcon } from '../components/Icons'
-import { SITE_NAME, isIndependentPoem } from '../../constants'
+import { SITE_NAME, isIndependentPoem, HERO_MISSION_TEXT, HERO_SAFETY_NOTICE } from '../../constants'
 import { apiFetchStats } from '../../api/stats'
 
 function formatCount(n) {
@@ -73,6 +74,16 @@ export default function DashboardView({
             </div>
           </div>
         )}
+
+        <div className="mt-5 mx-auto max-w-md px-4 py-4 rounded-xl animate-fade-in"
+          style={{ backgroundColor: 'color-mix(in srgb, var(--tp-secondary) 8%, transparent)', border: '1.5px solid var(--tp-border)' }}>
+          <p className="text-sm leading-relaxed" style={{ color: 'var(--tp-text)', fontFamily: '"Playfair Display", Georgia, serif' }}>
+            {HERO_MISSION_TEXT}
+          </p>
+          <p className="text-[11px] mt-2 font-medium" style={{ color: 'var(--tp-text-secondary)' }}>
+            {HERO_SAFETY_NOTICE}
+          </p>
+        </div>
       </div>
 
       {recentlyViewed.length > 0 && (
@@ -232,6 +243,10 @@ export default function DashboardView({
         </div>
         <PoetryCard />
       </section>
+
+      <div className="pt-4 pb-2" style={{ borderTop: '1px solid var(--tp-border)' }}>
+        <LegalLinks onNavigate={onNavigate} />
+      </div>
 
       <div className="h-4" />
     </div>

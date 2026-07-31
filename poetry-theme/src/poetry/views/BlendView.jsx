@@ -3,6 +3,7 @@ import { useBook } from '../contexts/BookContext'
 import { useAuth } from '../../auth/AuthContext'
 import { COUNTRIES } from '../../constants/languages'
 import { apiSearchShelfBooks } from '../../api/shelfBooks'
+import LegalLinks from '../components/LegalLinks'
 
 const geoCache = new Map()
 
@@ -269,6 +270,10 @@ export default function BlendView({ onNavigate, focusQuery, onOpenAuth }) {
           ))}
         </div>
       )}
+
+      <div className="pt-4 pb-2 mt-6" style={{ borderTop: '1px solid var(--tp-border)' }}>
+        <LegalLinks onNavigate={onNavigate} />
+      </div>
     </div>
   )
 }
