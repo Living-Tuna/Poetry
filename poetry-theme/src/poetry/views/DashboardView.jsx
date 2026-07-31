@@ -4,6 +4,7 @@ import ShareQuoteModal from '../components/ShareQuoteModal'
 import DataIndicator from '../components/DataIndicator'
 import LegalLinks from '../components/LegalLinks'
 import { ClockIcon, PenIcon, BookIcon, HeartIcon } from '../components/Icons'
+import AnnouncementBanner from '../components/AnnouncementBanner'
 import { SITE_NAME, isIndependentPoem, HERO_MISSION_TEXT, HERO_SAFETY_NOTICE } from '../../constants'
 import { apiFetchStats, apiGetCachedStats, STATS_CACHE_TTL } from '../../api/stats'
 
@@ -38,6 +39,7 @@ export default function DashboardView({
 
   return (
     <div className="px-4 py-5 max-w-2xl mx-auto w-full space-y-8">
+      <AnnouncementBanner />
       <div className="text-center animate-fade-in">
         {user ? (
           <>

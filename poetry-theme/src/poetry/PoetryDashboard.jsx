@@ -10,7 +10,7 @@ import AuthForms from './components/AuthForms'
 import CompactProfile from './components/CompactProfile'
 import PersonProfile from './components/PersonProfile'
 import { btnWhite } from './components/AuthForms'
-import WritePoemModal from './components/WritePoemModal'
+import WritePoemView from './components/WritePoemView'
 import WritingsView from './views/WritingsView'
 import FavoritesView from './views/FavoritesView'
 import TermsView from './views/TermsView'
@@ -426,7 +426,7 @@ export default function PoetryDashboard() {
         onClose={() => setLanguagePickerOpen(false)}
       />
 
-      <WritePoemModal
+      <WritePoemView
         open={showWriteModal}
         onClose={() => { setShowWriteModal(false); setWriteTitle(''); setWriteContent(''); setWriteCategories([]); setEditingPoem(null) }}
         onSave={handleSavePoem}

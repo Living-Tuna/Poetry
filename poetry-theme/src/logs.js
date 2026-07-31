@@ -1,5 +1,21 @@
 const logs = [
   {
+    versionCode: '1.2.2',
+    date: 'July 2026',
+    features: [
+      'Writing a poem is now a full page like the reader — no more popup; the title sits in the heading, the poem is written below it, and the category selector lives in a bar at the very bottom',
+      'The full-page writer opens from everywhere — the floating button on home, the sidebar\'s "Write Now", and the write buttons on your writings page',
+    ],
+  },
+  {
+    versionCode: '1.2.1',
+    date: 'July 2026',
+    features: [
+      'Announcements now appear on your home screen — a one-line badge with an icon that slides down into the full note when tapped, with an X to close it',
+      'Notes, updates, errors, bugs and fixes each get their own icon and color, and new notes can be published right from src/announcement.js',
+    ],
+  },
+  {
     versionCode: '1.2.0',
     date: 'July 2026',
     features: [
