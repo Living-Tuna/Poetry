@@ -266,24 +266,41 @@ export default function PoetryDashboard() {
   const seenNotifIds = useRef(new Set())
 
   useEffect(() => {
+    try {
+      const cached = JSON.parse(localStorage.getItem('poetry_inbox')) || []
+      cached.forEach((m) => seenMsgIds.current.add(m.id))
+    } catch {}
+    try {
+      const cached = JSON.parse(localStorage.getItem('poetry_notifs')) || []
+      cached.forEach((n) => seenNotifIds.current.add(n.id))
+    } catch {}
+  }, [])
+
+  useEffect(() => {
     const fresh = inbox.filter((m) => !seenMsgIds.current.has(m.id))
-    if (fresh.length > 0) {
-      const newest = inbox.find((m) => fresh.includes(m.id))
-      if (newest && newest.from !== user?.username && !newest.read) {
-        setNotice({ text: `New message from ${newest.from}`, action: () => handleNavigate('inbox') })
-      }
-      fresh.forEach((m) => seenMsgIds.current.add(m.id))
-    }
+    if (fresh.length === 0) return
+    fresh.forEach((m) => seenMsgIds.current.add(m.id))
+    const incoming = fresh.find((m) => m.from !== user?.username && m.from && !m.read)
+    if (!incoming) return
+    const kind = incoming.kind || 'chat'
+    const label = kind === 'request' ? 'New book request'
+      : kind === 'share_yes' ? 'Book shared'
+        : kind === 'share_no' ? 'Share declined'
+          : kind === 'received_yes' ? 'Book received'
+            : 'New message'
+    setNotice({
+      text: `${label} from ${incoming.from}${incoming.bookTitle ? ` · ${incoming.bookTitle}` : ''}`,
+      action: () => { setChatContact(incoming.from); handleNavigate('inbox') },
+    })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [inbox, user])
 
   useEffect(() => {
     const fresh = notifs.filter((n) => !seenNotifIds.current.has(n.id))
-    if (fresh.length > 0) {
-      const n = notifs.find((x) => fresh.includes(x.id))
-      if (n) setNotice({ text: n.text, action: () => handleNavigate('notifications') })
-      fresh.forEach((x) => seenNotifIds.current.add(x.id))
-    }
+    if (fresh.length === 0) return
+    fresh.forEach((x) => seenNotifIds.current.add(x.id))
+    const n = fresh[0]
+    if (n) setNotice({ text: n.text, action: () => handleNavigate('notifications') })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [notifs])
 
@@ -413,7 +430,7 @@ export default function PoetryDashboard() {
       </div>
 
       <MenuModal
-        open={menuOpen}
+        open={menuOpen && !chatContact}
         onClose={() => setMenuOpen(false)}
         onSettings={() => { setMenuOpen(false); handleNavigate('settings') }}
         onWriteNow={() => { setShowWriteModal(true); setMenuOpen(false); setEditingPoem(null); setWriteTitle(''); setWriteContent(''); setWriteCategories([]) }}
@@ -517,7 +534,7 @@ export default function PoetryDashboard() {
           <InboxView
             onNavigate={handleNavigate}
             openContact={chatContact}
-            onOpenContact={setChatContact}
+            onOpenContact={(c) => { setMenuOpen(false); setChatContact(c) }}
           />
         )}
         {bodyView === 'notifications' && <NotificationsView onNavigate={handleNavigate} />}

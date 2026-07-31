@@ -1,5 +1,15 @@
 const logs = [
   {
+    versionCode: '1.3.4',
+    date: 'July 2026',
+    features: [
+      'Incoming messages flash as a banner in the header for a few seconds — book requests, shares, and replies all announce themselves, and tapping the banner jumps straight into that chat',
+      'The sidebar stays out of the way while a chat is open — no menu button on the conversation screen, and opening a chat always dismisses the menu',
+      'The sidebar now has a Home shortcut at the top, right above My Writings, so you can jump back to the dashboard from anywhere',
+      'Message banners no longer replace the header — the reader\'s name stays put and the incoming message slides in as a slim strip below it, then fades away on its own',
+    ],
+  },
+  {
     versionCode: '1.3.3',
     date: 'July 2026',
     features: [

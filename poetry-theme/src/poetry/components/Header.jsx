@@ -158,32 +158,15 @@ export default function Header({
     <>
       <header
         ref={headerRef}
-        className="flex-shrink-0 z-30 px-4 py-3 flex items-center gap-2 relative overflow-hidden"
+        className="flex-shrink-0 z-30 relative overflow-hidden"
         style={{
           backgroundColor: 'var(--tp-header-bg)',
           color: 'var(--tp-header-text)',
           boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
         }}
       >
-        {notice ? (
-          <button
-            onClick={onNoticeClick}
-            className="absolute inset-0 flex items-center gap-2 px-4 animate-fade-in"
-            style={{
-              backgroundColor: 'var(--tp-header-bg)',
-              color: 'var(--tp-header-text)',
-              cursor: 'pointer',
-              zIndex: 5,
-            }}
-            aria-label="View notification"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 opacity-80">
-              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-              <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-            </svg>
-            <span className="text-sm font-medium truncate">{notice.text}</span>
-          </button>
-        ) : isChat ? (
+        <div className="px-4 py-3 flex items-center gap-2">
+        {isChat ? (
           <>
             <button onClick={onChatBack} className="p-1.5 rounded-xl transition-opacity hover:opacity-70 flex-shrink-0" aria-label="Back to inbox">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -203,10 +186,6 @@ export default function Header({
             </button>
           </>
         ) : (
-        <></>
-        )}
-
-        {!notice && !isChat && (
         <>
         <button onClick={onMenuToggle} className="p-1.5 rounded-xl transition-opacity hover:opacity-70 flex-shrink-0" aria-label="Menu">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -278,6 +257,26 @@ export default function Header({
           </div>
         )}
         </>
+        )}
+        </div>
+
+        {notice && (
+          <button
+            onClick={onNoticeClick}
+            className="w-full flex items-center gap-2 px-4 pb-3 animate-fade-in"
+            style={{
+              backgroundColor: 'rgba(255,255,255,0.06)',
+              cursor: 'pointer',
+              borderTop: '1px solid rgba(255,255,255,0.08)',
+            }}
+            aria-label="View notification"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 opacity-80">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+              <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+            </svg>
+            <span className="text-sm font-medium truncate">{notice.text}</span>
+          </button>
         )}
       </header>
 

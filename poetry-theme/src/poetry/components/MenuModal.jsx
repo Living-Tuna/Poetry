@@ -78,6 +78,11 @@ export default function MenuModal({ open, onClose, onSettings, onWriteNow, onFav
         </div>
 
         <div className="space-y-0.5">
+          <MenuBtn icon={
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 10.5 12 3l9 7.5" /><path d="M5 9.5V21h14V9.5" />
+            </svg>
+          } label="Home" onClick={() => { onNavigate('dashboard'); onClose() }} />
           {user && (
             <MenuBtn icon={
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
