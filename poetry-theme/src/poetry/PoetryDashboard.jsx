@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
-import { useTheme } from '../theme/ThemeContext'
 import { usePoetry } from './PoetryContext'
 import FullscreenView from './FullscreenView'
 import Settings from './Settings'
@@ -31,7 +30,6 @@ import { useBook } from './contexts/BookContext'
 export default function PoetryDashboard() {
   const { user, login, logout, signup, checkUsername,
           getUserSecurityQuestion, resetPassword } = useAuth()
-  const { themeId } = useTheme()
   const {
     resetQueue, favorites, clearFavorites, fullscreen,
     navigateToPoem, myPoems, addMyPoem, updateMyPoem, deleteMyPoem,
@@ -61,6 +59,8 @@ export default function PoetryDashboard() {
   const [slideOpen, setSlideOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [showLocationModal, setShowLocationModal] = useState(false)
+  const [blendFocus, setBlendFocus] = useState(null)
+  const [focusFavorite, setFocusFavorite] = useState(null)
   const locationAsked = useRef(false)
   const [showWriteModal, setShowWriteModal] = useState(false)
   const [writeTitle, setWriteTitle] = useState('')
@@ -231,6 +231,7 @@ export default function PoetryDashboard() {
     setBodyView(view)
     if (view === 'shelf') navigate('/shelf')
     else if (view === 'blend') {
+      setBlendFocus(null)
       const zip = localStorage.getItem('poetry_zip') || user?.zip || ''
       if (user && !zip) setShowLocationModal(true)
       navigate('/blend')
@@ -267,12 +268,16 @@ export default function PoetryDashboard() {
   return (
     <div className="h-screen flex flex-col" style={{ backgroundColor: 'var(--tp-bg)' }}>
       <Header
-        user={user}
-        themeId={themeId}
         onMenuToggle={() => setMenuOpen(!menuOpen)}
         onProfileToggle={() => setSlideOpen(!slideOpen)}
         lang={lang}
         onLangClick={() => setLanguagePickerOpen(true)}
+        allPoems={allPoems}
+        onSearchSelect={navigateToPoem}
+        favorites={favorites}
+        view={bodyView}
+        onOpenBooks={(title) => { console.log('[Dashboard] onOpenBooks', title); setBlendFocus({ q: title || '', n: Date.now() }) }}
+        onOpenFavorites={(fav) => { console.log('[Dashboard] onOpenFavorites', fav?.key); setFocusFavorite(fav || null); handleNavigate('favorites') }}
       />
 
       {/* ─── Slide-down panel ─── */}
@@ -404,6 +409,7 @@ export default function PoetryDashboard() {
             favorites={favorites}
             onNavigate={handleNavigate}
             onClearFavorites={clearFavorites}
+            focusFavorite={focusFavorite}
           />
         )}
         {bodyView === 'terms' && <TermsView onNavigate={handleNavigate} />}
@@ -427,7 +433,7 @@ export default function PoetryDashboard() {
           />
         )}
         {bodyView === 'shelf' && <ShelfView onNavigate={handleNavigate} />}
-        {bodyView === 'blend' && <BlendView onNavigate={handleNavigate} />}
+        {bodyView === 'blend' && <BlendView onNavigate={handleNavigate} focusQuery={blendFocus} />}
         {bodyView === 'inbox' && <InboxView onNavigate={handleNavigate} />}
         {bodyView === 'notifications' && <NotificationsView onNavigate={handleNavigate} />}
         {bodyView === 'settings' && <Settings onNavigate={handleNavigate} />}

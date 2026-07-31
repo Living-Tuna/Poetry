@@ -1,8 +1,27 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import ShareQuoteModal from '../components/ShareQuoteModal'
 
-export default function FavoritesView({ favorites, onNavigate, onClearFavorites }) {
+const PAGE_SIZE = 5
+
+export default function FavoritesView({ favorites, onNavigate, onClearFavorites, focusFavorite }) {
   const [shareTarget, setShareTarget] = useState(null)
+  const [page, setPage] = useState(1)
+
+  const pageCount = Math.max(1, Math.ceil(favorites.length / PAGE_SIZE))
+  const safePage = Math.min(page, pageCount)
+  const start = (safePage - 1) * PAGE_SIZE
+  const pageFavorites = favorites.slice(start, start + PAGE_SIZE)
+
+  useEffect(() => {
+    if (page > pageCount) setPage(1)
+  }, [favorites.length, page, pageCount])
+
+  useEffect(() => {
+    if (focusFavorite && favorites.some((f) => f.key === focusFavorite.key)) {
+      console.log('[FavoritesView] focusFavorite → opening preview', focusFavorite.key, focusFavorite.poemTitle)
+      setShareTarget(focusFavorite)
+    }
+  }, [focusFavorite, favorites])
 
   return (
     <div className="min-h-full px-4 py-6 max-w-2xl mx-auto animate-fade-in">
@@ -37,7 +56,7 @@ export default function FavoritesView({ favorites, onNavigate, onClearFavorites 
         </div>
       ) : (
         <div className="space-y-2">
-          {favorites.map((f) => (
+          {pageFavorites.map((f) => (
             <div key={f.key}
               className="rounded-xl p-4 transition-all duration-200 cursor-pointer hover:scale-[1.01]"
               style={{ backgroundColor: 'var(--tp-surface)', border: '1.5px solid var(--tp-border)' }}
@@ -68,6 +87,30 @@ export default function FavoritesView({ favorites, onNavigate, onClearFavorites 
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {favorites.length > 0 && pageCount > 1 && (
+        <div className="flex items-center justify-center gap-3 mt-5">
+          <button
+            onClick={() => setPage(safePage - 1)}
+            disabled={safePage <= 1}
+            className="p-2 rounded-xl transition-all hover:scale-110 active:scale-90 disabled:opacity-30 disabled:pointer-events-none"
+            style={{ color: 'var(--tp-secondary)', backgroundColor: 'color-mix(in srgb, var(--tp-secondary) 12%, transparent)' }}
+            aria-label="Previous page">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M15 18l-6-6 6-6" /></svg>
+          </button>
+          <span className="text-xs font-medium" style={{ color: 'var(--tp-text-secondary)' }}>
+            Page {safePage} of {pageCount}
+          </span>
+          <button
+            onClick={() => setPage(safePage + 1)}
+            disabled={safePage >= pageCount}
+            className="p-2 rounded-xl transition-all hover:scale-110 active:scale-90 disabled:opacity-30 disabled:pointer-events-none"
+            style={{ color: 'var(--tp-secondary)', backgroundColor: 'color-mix(in srgb, var(--tp-secondary) 12%, transparent)' }}
+            aria-label="Next page">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M9 18l6-6-6-6" /></svg>
+          </button>
         </div>
       )}
 

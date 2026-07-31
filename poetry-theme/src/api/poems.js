@@ -49,3 +49,13 @@ export async function apiDeletePoem(id) {
   if (error) { console.log('[API] deletePoem error:', error); throw error }
   console.log('[API] deletePoem ok')
 }
+
+export async function apiSetPoemLike(poemId, liked) {
+  const { data, error } = await supabase.rpc('bump_poem_likes', {
+    poem_id: String(poemId),
+    delta: liked ? 1 : -1,
+  })
+  if (error) { console.log('[API] setPoemLike error:', error); throw error }
+  console.log('[API] setPoemLike — liked:', liked, 'newLikes:', data)
+  return data
+}

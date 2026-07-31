@@ -28,6 +28,7 @@ export default function FullscreenView() {
     isUserPoem,
     deleteMyPoem, updateMyPoem, editOnOpen, setEditOnOpen,
     queue, index, favorites,
+    hasLiked, toggleLikePoem,
   } = usePoetry()
 
   function isLineFav(poemId, i) {
@@ -341,7 +342,7 @@ export default function FullscreenView() {
           {/* Left card */}
           <div className="flex-shrink-0 w-1/3 h-full overflow-y-auto poem-scroll px-5 py-8"
             style={{ touchAction: 'pan-y' }}>
-            <PoemView poem={leftPoem} />
+            <PoemView poem={leftPoem} liked={hasLiked(leftPoem?.id)} onToggleLike={toggleLikePoem} />
           </div>
 
           {/* Center card */}
@@ -436,12 +437,16 @@ export default function FullscreenView() {
                     </div>
                   )}
                   {isIndependentPoem(currentPoem) ? (
-                    <div className="flex items-center justify-center gap-1 mt-3">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="#f59e0b" stroke="none">
+                    <button onClick={(e) => { e.stopPropagation(); toggleLikePoem(currentPoem) }}
+                      className="flex items-center gap-1.5 mt-3 px-2.5 py-1 rounded-full transition-all active:scale-90"
+                      style={{ backgroundColor: 'color-mix(in srgb, var(--tp-secondary) 12%, transparent)', color: 'var(--tp-secondary)' }}>
+                      <svg width="14" height="14" viewBox="0 0 24 24"
+                        fill={hasLiked(currentPoem.id) ? '#f59e0b' : 'none'}
+                        stroke={hasLiked(currentPoem.id) ? 'none' : 'currentColor'} strokeWidth="2">
                         <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
                       </svg>
-                      <span className="text-xs font-medium" style={{ color: 'var(--tp-text-secondary)' }}>{abbrev(currentPoem.likes ?? 0)}</span>
-                    </div>
+                      <span className="text-xs font-medium">{abbrev(currentPoem.likes ?? 0)}</span>
+                    </button>
                   ) : (
                     <span className="inline-block text-[10px] px-2 py-0.5 rounded-full mt-3" style={{ backgroundColor: 'color-mix(in srgb, var(--tp-text-secondary) 12%, transparent)', color: 'var(--tp-text-secondary)' }}>
                       Historic poem · not ratable
@@ -490,7 +495,7 @@ export default function FullscreenView() {
           {/* Right card */}
           <div className="flex-shrink-0 w-1/3 h-full overflow-y-auto poem-scroll px-5 py-8"
             style={{ touchAction: 'pan-y' }}>
-            <PoemView poem={rightPoem} />
+            <PoemView poem={rightPoem} liked={hasLiked(rightPoem?.id)} onToggleLike={toggleLikePoem} />
           </div>
         </div>
       </div>
@@ -512,7 +517,7 @@ export default function FullscreenView() {
   )
 }
 
-function PoemView({ poem }) {
+function PoemView({ poem, liked, onToggleLike }) {
   if (!poem) return null
   const poemLines = poem.content.split('\n').filter(Boolean)
   return (
@@ -538,12 +543,16 @@ function PoemView({ poem }) {
           </div>
         )}
         {isIndependentPoem(poem) ? (
-          <div className="flex items-center justify-center gap-1 mt-3">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="#f59e0b" stroke="none">
+          <button onClick={() => onToggleLike(poem)}
+            className="flex items-center gap-1.5 mt-3 px-2.5 py-1 rounded-full transition-all active:scale-90"
+            style={{ backgroundColor: 'color-mix(in srgb, var(--tp-secondary) 12%, transparent)', color: 'var(--tp-secondary)' }}>
+            <svg width="14" height="14" viewBox="0 0 24 24"
+              fill={liked ? '#f59e0b' : 'none'}
+              stroke={liked ? 'none' : 'currentColor'} strokeWidth="2">
               <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
             </svg>
-            <span className="text-xs font-medium" style={{ color: 'var(--tp-text-secondary)' }}>{abbrev(poem.likes ?? 0)}</span>
-          </div>
+            <span className="text-xs font-medium">{abbrev(poem.likes ?? 0)}</span>
+          </button>
         ) : (
           <span className="inline-block text-[10px] px-2 py-0.5 rounded-full mt-3" style={{ backgroundColor: 'color-mix(in srgb, var(--tp-text-secondary) 12%, transparent)', color: 'var(--tp-text-secondary)' }}>
             Historic poem · not ratable

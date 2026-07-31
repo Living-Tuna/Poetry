@@ -6,6 +6,7 @@ export default function PoetryCard() {
   const {
     queue, index, swipeRight, swipeLeft,
     canSwipeLeft, canSwipeRight, openFullscreen,
+    toggleLikePoem, hasLiked,
   } = usePoetry()
 
   const poem = queue[index] || null
@@ -57,12 +58,16 @@ export default function PoetryCard() {
       <div className="px-5 pb-4 flex items-center justify-between border-t" style={{ borderColor: 'var(--tp-border)' }}>
         <div className="flex items-center gap-1.5">
           {isIndependentPoem(poem) ? (
-            <>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="#f59e0b" stroke="none">
+            <button onClick={(e) => { e.stopPropagation(); toggleLikePoem(poem) }}
+              className="flex items-center gap-1.5 transition-all active:scale-90"
+              style={{ color: 'var(--tp-text-secondary)' }}>
+              <svg width="14" height="14" viewBox="0 0 24 24"
+                fill={hasLiked(poem.id) ? '#f59e0b' : 'none'}
+                stroke={hasLiked(poem.id) ? 'none' : 'currentColor'} strokeWidth="2">
                 <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
               </svg>
-              <span className="text-xs font-medium" style={{ color: 'var(--tp-text-secondary)' }}>{(poem.likes ?? 0).toLocaleString()}</span>
-            </>
+              <span className="text-xs font-medium">{(poem.likes ?? 0).toLocaleString()}</span>
+            </button>
           ) : (
             <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ backgroundColor: 'color-mix(in srgb, var(--tp-text-secondary) 12%, transparent)', color: 'var(--tp-text-secondary)' }}>
               Historic

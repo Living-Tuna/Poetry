@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useBook } from '../contexts/BookContext'
 import { useAuth } from '../../auth/AuthContext'
 import { COUNTRIES } from '../../constants/languages'
@@ -69,21 +69,25 @@ function holderSort(a, b) {
   return 0
 }
 
-export default function BlendView({ onNavigate }) {
+export default function BlendView({ onNavigate, focusQuery }) {
   const { sendMessage, addNotif } = useBook()
   const { user } = useAuth()
   const [query, setQuery] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [results, setResults] = useState(null)
+  const runRef = useRef(null)
 
-  async function handleSearch() {
-    if (!query.trim() || busy) return
+  async function runSearch(term) {
+    const t = (term || '').trim()
+    console.log('[BlendView] runSearch', t, 'busy', busy)
+    if (!t || busy) return
     setBusy(true)
     setError('')
     setResults(null)
     try {
-      const rows = await apiSearchShelfBooks(query.trim())
+      const rows = await apiSearchShelfBooks(t)
+      console.log('[BlendView] rows', t, rows.length)
 
       const groups = new Map()
       for (const r of rows) {
@@ -115,6 +119,7 @@ export default function BlendView({ onNavigate }) {
         out.push({ ...g, holders })
       }
       setResults(out)
+      console.log('[BlendView] done → groups', out.length, out.map((g) => `${g.title} (${g.holders.length} holders)`))
     } catch {
       setError('Search failed — try again.')
       setResults([])
@@ -122,6 +127,15 @@ export default function BlendView({ onNavigate }) {
       setBusy(false)
     }
   }
+  runRef.current = runSearch
+
+  useEffect(() => {
+    console.log('[BlendView] focusQuery effect', focusQuery)
+    if (focusQuery && focusQuery.q) {
+      setQuery(focusQuery.q)
+      runRef.current(focusQuery.q)
+    }
+  }, [focusQuery])
 
   function handleRequest(book, holder) {
     if (!user) { addNotif('Sign in to request a book'); return }
@@ -146,37 +160,32 @@ export default function BlendView({ onNavigate }) {
         </h2>
       </div>
 
-      <p className="text-xs mb-4" style={{ color: 'var(--tp-text-secondary)' }}>
-        Find your book — discover nearby readers who have it.
-      </p>
+      {!results && (
+        <div className="rounded-xl p-8 text-center" style={{ backgroundColor: 'var(--tp-surface)', border: '1.5px dashed var(--tp-border)' }}>
+          <p className="text-sm" style={{ color: 'var(--tp-text-secondary)' }}>
+            Use the search bar above to find a book — discover nearby readers who have it.
+          </p>
+          <p className="text-xs mt-2" style={{ color: 'var(--tp-text-secondary)', opacity: 0.7 }}>
+            Your books travel the world, one reader at a time.
+          </p>
+        </div>
+      )}
 
-      <div className="flex gap-2 mb-6">
-        <input value={query} onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-          placeholder="Enter book name..."
-          className="flex-1 px-4 py-2.5 rounded-xl text-sm outline-none transition-colors"
-          style={{ backgroundColor: 'var(--tp-surface)', color: 'var(--tp-text)', border: '1.5px solid var(--tp-border)' }} />
-        <button onClick={handleSearch} disabled={busy}
-          className="px-5 py-2.5 rounded-xl text-sm font-medium text-white transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-50"
-          style={{ backgroundColor: 'var(--tp-secondary)' }}>
-          {busy ? (
-            <span className="w-4 h-4 rounded-full border-2 border-transparent animate-spin inline-block"
-              style={{ borderTopColor: '#fff' }} />
-          ) : (
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-              <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
-            </svg>
-          )}
-        </button>
-      </div>
+      {busy && (
+        <div className="flex items-center justify-center gap-2 py-8">
+          <span className="w-5 h-5 rounded-full border-2 border-transparent animate-spin inline-block"
+            style={{ borderTopColor: 'var(--tp-secondary)' }} />
+          <span className="text-xs" style={{ color: 'var(--tp-text-secondary)' }}>Searching the world for "{query}"...</span>
+        </div>
+      )}
 
-      {error && (
+      {error && !busy && (
         <div className="rounded-xl p-6 text-center" style={{ backgroundColor: 'var(--tp-surface)', border: '1.5px dashed var(--tp-border)' }}>
           <p className="text-sm" style={{ color: 'var(--tp-text-secondary)' }}>{error}</p>
         </div>
       )}
 
-      {results && results.length === 0 && !error && (
+      {results && results.length === 0 && !busy && !error && (
         <div className="rounded-xl p-6 text-center" style={{ backgroundColor: 'var(--tp-surface)', border: '1.5px dashed var(--tp-border)' }}>
           <p className="text-sm" style={{ color: 'var(--tp-text-secondary)' }}>
             No one has listed this book yet. Try a different name, or add it to your shelf to make it findable.
@@ -184,10 +193,10 @@ export default function BlendView({ onNavigate }) {
         </div>
       )}
 
-      {results && results.length > 0 && (
+      {results && results.length > 0 && !busy && (
         <div className="space-y-3">
           <p className="text-xs font-semibold mb-2" style={{ color: 'var(--tp-text-secondary)' }}>
-            {results.length} book{results.length > 1 ? 's' : ''} found
+            {results.length} book{results.length > 1 ? 's' : ''} found for "{query}"
           </p>
           {results.map((book, i) => (
             <div key={i} className="rounded-xl p-4 transition-all duration-200"

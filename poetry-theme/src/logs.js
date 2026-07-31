@@ -1,5 +1,24 @@
 const logs = [
   {
+    versionCode: '1.1.3',
+    date: 'July 2026',
+    bugs: [
+      'Broken URLs now redirect safely back to the app instead of 404',
+      'Cards open fullscreen even when tapped on the preview text',
+      'Search dropdown no longer collapses the instant you tap the search icon',
+      'Tapping a search result now opens the poem, favourite preview, or book as expected',
+    ],
+    features: [
+      'Likes on user poems now actually increment and decrement — tap the star anywhere',
+      'Header search expands to full width and adapts to what you\'re browsing — poems on the home feed, favourite lines on your Favourites page, and real shelf books on Blend',
+      'Favourites list paginated for easy browsing',
+      'Historic poems clearly marked as not ratable',
+      'Blend book exchange with real library data and distance-based holder sorting — search books straight from the header',
+      'Shelf syncs to the cloud so your books follow you across devices',
+      'Hero stats: live users, active users, and poem counts',
+    ],
+  },
+  {
     versionCode: '1.0.0',
     date: 'July 2026',
     bugs: [

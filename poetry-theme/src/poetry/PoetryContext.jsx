@@ -1,11 +1,13 @@
 import { createContext, useContext, useState, useCallback, useMemo, useRef, useEffect } from 'react'
 import { useAuth } from '../auth/AuthContext'
-import { apiFetchAllPoems, apiAddPoem, apiUpdatePoem, apiDeletePoem } from '../api/poems'
+import { apiFetchAllPoems, apiAddPoem, apiUpdatePoem, apiDeletePoem, apiSetPoemLike } from '../api/poems'
 import { apiFetchUserPoems } from '../api/profile'
 import { useSyncedState } from './contexts/useSyncedState'
+import { isIndependentPoem } from '../constants'
 
 const MY_POEMS_KEY = 'poetry-my-poems'
 const RECENT_KEY = 'poetry-recently-viewed'
+const LIKED_KEY = 'poetry-liked-poems'
 const MAX_RECENT = 8
 
 function prefixedKey(prefix, username) {
@@ -36,8 +38,16 @@ export function PoetryProvider({ children }) {
   const [editRequest, setEditRequest] = useState(null)
   const [editOnOpen, setEditOnOpen] = useState(false)
   const [myPoemsCachedOnly, setMyPoemsCachedOnly] = useState(true)
+  const [likedPoems, setLikedPoems] = useState(() => loadArray(prefixedKey(LIKED_KEY, user?.username)))
+  const likedRef = useRef(new Set(likedPoems))
   const loadedIds = useRef(new Set())
   const allRef = useRef([])
+
+  useEffect(() => {
+    const arr = loadArray(prefixedKey(LIKED_KEY, user?.username))
+    likedRef.current = new Set(arr)
+    setLikedPoems(arr)
+  }, [user])
 
   useEffect(() => {
     let cancelled = false
@@ -150,6 +160,7 @@ export function PoetryProvider({ children }) {
   const closeFullscreen = useCallback(() => setFullscreen(false), [])
 
   const navigateToPoem = useCallback((poem) => {
+    console.log('[PoetryContext] navigateToPoem', poem?.id, poem?.title, 'queue', queue.length)
     if (!poem) return
     loadedIds.current = new Set([poem.id, ...queue.map((p) => p.id)])
     setQueue([poem, ...queue.filter((p) => p.id !== poem.id)])
@@ -232,12 +243,46 @@ export function PoetryProvider({ children }) {
 
   const clearFavorites = useCallback(() => setFavorites([]), [])
 
+  const hasLiked = useCallback((poemId) => likedRef.current.has(String(poemId)), [])
+
+  const toggleLikePoem = useCallback(async (poem) => {
+    if (!poem || !isIndependentPoem(poem)) return
+    const id = String(poem.id)
+    const liked = !likedRef.current.has(id)
+    const next = liked ? [...likedPoems, id] : likedPoems.filter((x) => x !== id)
+    if (liked) likedRef.current.add(id); else likedRef.current.delete(id)
+    setLikedPoems(next)
+    saveArray(prefixedKey(LIKED_KEY, user?.username), next)
+
+    const idx = allRef.current.findIndex((p) => String(p.id) === id)
+    if (idx !== -1) {
+      allRef.current[idx] = { ...allRef.current[idx], likes: Math.max(0, (allRef.current[idx].likes ?? 0) + (liked ? 1 : -1)) }
+      setAllPoems([...allRef.current])
+    }
+
+    try {
+      const newLikes = await apiSetPoemLike(id, liked)
+      if (typeof newLikes === 'number' && idx !== -1) {
+        allRef.current[idx] = { ...allRef.current[idx], likes: newLikes }
+        setAllPoems([...allRef.current])
+      }
+    } catch {
+      if (liked) likedRef.current.delete(id); else likedRef.current.add(id)
+      setLikedPoems(liked ? likedPoems.filter((x) => x !== id) : [...likedPoems, id])
+      if (idx !== -1) {
+        allRef.current[idx] = { ...allRef.current[idx], likes: Math.max(0, (allRef.current[idx].likes ?? 0) + (liked ? -1 : 1)) }
+        setAllPoems([...allRef.current])
+      }
+    }
+  }, [likedPoems, user])
+
   const ctx = useMemo(() => ({
     currentPoem, queue, index, expanded, loading: loading || !allPoems.length, fullscreen,
     canSwipeLeft, canSwipeRight,
     swipeRight, swipeLeft, enqueueNext, setExpanded, resetQueue,
     openFullscreen, closeFullscreen, navigateToPoem,
     favorites, upsertFavorite, removeFavorite, isFavorite, clearFavorites,
+    likedPoems, hasLiked, toggleLikePoem,
     total: allRef.current.length,
     allPoems: allRef.current,
     myPoems, addMyPoem, updateMyPoem, deleteMyPoem, isUserPoem,
@@ -249,6 +294,7 @@ export function PoetryProvider({ children }) {
       swipeRight, swipeLeft, enqueueNext, setExpanded, resetQueue,
       openFullscreen, closeFullscreen, navigateToPoem,
       favorites, upsertFavorite, removeFavorite, isFavorite, clearFavorites,
+      likedPoems, hasLiked, toggleLikePoem,
       myPoems, addMyPoem, updateMyPoem, deleteMyPoem, isUserPoem,
       editRequest, setEditRequest, editOnOpen, setEditOnOpen,
       recentlyViewed, addToRecentlyViewed,
