@@ -1,10 +1,11 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from './auth/AuthContext'
 import PoetryDashboard from './poetry/PoetryDashboard'
 import LanguageOnboarding from './poetry/components/LanguageOnboarding'
 
 export default function App() {
   const { loading } = useAuth()
+  const location = useLocation()
   const savedLang = localStorage.getItem('poetry_lang')
 
   if (loading) {
