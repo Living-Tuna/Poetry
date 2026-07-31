@@ -108,7 +108,7 @@ export default function InboxView({ onNavigate }) {
                     borderRadius: mine ? '1rem 1rem 0.125rem 1rem' : '1rem 1rem 1rem 0.125rem',
                   }}>
                   {m.bookTitle && (
-                    <p className="text-[10px] font-semibold mb-0.5" style={{ opacity: 0.7 }}>Re: {m.bookTitle}</p>
+                    <p className="text-[10px] font-semibold mb-0.5" style={{ opacity: 0.7 }}>{m.bookTitle}</p>
                   )}
                   <p className="text-sm leading-relaxed whitespace-pre-wrap">{m.message}</p>
                   <p className="text-[10px] mt-1" style={{ opacity: 0.6 }}>{fmtTime(m.timestamp)}</p>
@@ -133,15 +133,22 @@ export default function InboxView({ onNavigate }) {
           </div>
         )}
 
-        <div className="flex items-end gap-2 pt-3" style={{ borderTop: '1px solid var(--tp-border)' }}>
-          <textarea value={replyMsg} onChange={(e) => setReplyMsg(e.target.value)}
-            placeholder="Write a message..."
-            rows={2}
-            className="flex-1 px-3 py-2 rounded-xl text-sm outline-none transition-colors resize-none"
+        <div className="flex items-center gap-2 pt-3" style={{ borderTop: '1px solid var(--tp-border)' }}>
+          <input
+            value={replyMsg}
+            onChange={(e) => setReplyMsg(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleSendReply() } }}
+            placeholder="Message..."
+            className="flex-1 px-4 py-2.5 rounded-full text-sm outline-none transition-colors"
             style={{ backgroundColor: 'var(--tp-bg)', color: 'var(--tp-text)', border: '1.5px solid var(--tp-border)' }} />
-          <button onClick={handleSendReply} disabled={!replyMsg.trim()}
-            className="px-4 py-2 rounded-xl text-xs font-medium text-white transition-all hover:brightness-110 active:scale-[0.97] disabled:opacity-40"
-            style={{ backgroundColor: 'var(--tp-secondary)' }}>Send</button>
+          <button onClick={handleSendReply} disabled={!replyMsg.trim()} aria-label="Send"
+            className="p-2.5 rounded-full text-white transition-all hover:brightness-110 active:scale-95 disabled:opacity-40 flex-shrink-0"
+            style={{ backgroundColor: 'var(--tp-secondary)' }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M22 2L11 13" />
+              <path d="M22 2l-7 20-4-9-9-4 20-7z" />
+            </svg>
+          </button>
         </div>
       </div>
     )
@@ -174,7 +181,7 @@ export default function InboxView({ onNavigate }) {
                       {unread && <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: 'var(--tp-secondary)' }} />}
                     </div>
                     {last.bookTitle && (
-                      <p className="text-[10px] mt-0.5" style={{ color: 'var(--tp-secondary)' }}>Re: {last.bookTitle}</p>
+                      <p className="text-[10px] mt-0.5" style={{ color: 'var(--tp-secondary)' }}>{last.bookTitle}</p>
                     )}
                     <p className="text-sm mt-1.5 leading-relaxed truncate" style={{ color: 'var(--tp-text-secondary)', opacity: last.from === me ? 0.6 : 1 }}>
                       {last.message}

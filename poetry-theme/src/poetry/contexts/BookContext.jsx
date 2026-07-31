@@ -54,9 +54,14 @@ export function BookProvider({ children }) {
       timestamp: new Date().toISOString(),
       read: false,
     }
+    if (inbox.some((m) =>
+      m.from === msg.from && m.to === msg.to &&
+      m.bookTitle === msg.bookTitle && m.message === msg.message)) {
+      return
+    }
     setInbox((prev) => [msg, ...prev])
     addNotif(`New message from ${msg.from} about "${bookTitle}"`)
-  }, [user])
+  }, [user, inbox])
 
   const markRead = useCallback((id) => {
     setInbox((prev) => prev.map((m) => m.id === id ? { ...m, read: true } : m))
