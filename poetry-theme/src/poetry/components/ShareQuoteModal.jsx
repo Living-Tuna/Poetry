@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import html2canvas from 'html2canvas'
-import { shareText } from '../../constants'
+import { SITE_NAME, shareText } from '../../constants'
 
 export default function ShareQuoteModal({ favorite, favorites, initialIndex, onClose, inline = false }) {
   const cardRef = useRef(null)
@@ -51,7 +51,7 @@ export default function ShareQuoteModal({ favorite, favorites, initialIndex, onC
   }
 
   async function getCanvas() {
-    return html2canvas(cardRef.current, { scale: 2, useCORS: true, backgroundColor: null })
+    return html2canvas(cardRef.current, { scale: 4, useCORS: true, backgroundColor: null })
   }
 
   async function handleShare() {
@@ -138,6 +138,9 @@ export default function ShareQuoteModal({ favorite, favorites, initialIndex, onC
               {date}
             </p>
           )}
+          <p className="text-[9px] mt-2 font-semibold tracking-wider uppercase" style={{ color: 'var(--tp-secondary)', opacity: 0.5 }}>
+            {SITE_NAME}
+          </p>
         </div>
       </div>
 
