@@ -37,7 +37,7 @@ export default function PoetryDashboard() {
           getUserSecurityQuestion, resetPassword } = useAuth()
   const {
     resetQueue, favorites, clearFavorites, fullscreen,
-    navigateToPoem, myPoems, addMyPoem, updateMyPoem, deleteMyPoem,
+    openFullscreen, navigateToPoem, myPoems, addMyPoem, updateMyPoem, deleteMyPoem,
     editRequest, setEditRequest, recentlyViewed, allPoems,
     editOnOpen, setEditOnOpen, myPoemsCachedOnly,
     reading, lang, changeLanguage,
@@ -72,6 +72,7 @@ export default function PoetryDashboard() {
   const [focusFavorite, setFocusFavorite] = useState(null)
   const locationAsked = useRef(false)
   const [showWriteModal, setShowWriteModal] = useState(false)
+  const [isMobile, setIsMobile] = useState(() => window.matchMedia('(max-width: 640px)').matches)
   const [writeTitle, setWriteTitle] = useState('')
   const [writeContent, setWriteContent] = useState('')
   const [writeCategories, setWriteCategories] = useState([])
@@ -123,6 +124,13 @@ export default function PoetryDashboard() {
     else if (seg === 'about') setBodyView('about')
     else if (seg) navigate(`/${localStorage.getItem('poetry_lang') || 'en'}`)
   }, [location.pathname, navigate, changeLanguage])
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 640px)')
+    const onChange = () => setIsMobile(mq.matches)
+    mq.addEventListener('change', onChange)
+    return () => mq.removeEventListener('change', onChange)
+  }, [])
 
   function handleLanguageSelect(code) {
     changeLanguage(code)
@@ -481,7 +489,7 @@ export default function PoetryDashboard() {
       />
 
       {/* Body — view switching */}
-      <main ref={mainRef} className="flex-1 overflow-y-auto" style={{ backgroundColor: 'var(--tp-bg)' }}>
+      <main ref={mainRef} className="flex-1 overflow-y-auto" style={{ backgroundColor: 'var(--tp-bg)', paddingBottom: isMobile ? 84 : 0 }}>
         {bodyView === 'dashboard' && (
           <DashboardView
             user={user} slideOpen={slideOpen} setSlideOpen={setSlideOpen}
@@ -556,22 +564,95 @@ export default function PoetryDashboard() {
         {bodyView === 'changelog' && <ChangelogView onNavigate={handleNavigate} />}
       </main>
 
-      {/* Floating write button — only on dashboard */}
-      {bodyView === 'dashboard' && (
-        <button onClick={() => {
-          if (user) {
-            setShowWriteModal(true); setEditingPoem(null); setWriteTitle(''); setWriteContent(''); setWriteCategories([])
-          } else {
-            setAuthMode('signup'); setSlideOpen(true)
-          }
-        }}
-          className="fixed bottom-6 right-6 z-30 w-14 h-14 flex items-center justify-center shadow-lg transition-all duration-200 hover:scale-110 active:scale-95"
-          style={{ backgroundColor: 'var(--tp-secondary)', color: 'white', borderRadius: 'var(--tp-btn-radius, 9999px)' }}
-          aria-label="Write a poem">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-            <path d="M12 5v14M5 12h14" />
-          </svg>
-        </button>
+      {/* Bottom bar (mobile) / floating write button (desktop) */}
+      {isMobile ? (
+        <nav
+          className="fixed bottom-0 left-0 right-0 z-30 flex items-end justify-around px-2"
+          style={{
+            backgroundColor: 'var(--tp-secondary)',
+            paddingTop: 10,
+            paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 8px)',
+            borderTopLeftRadius: '1.25rem',
+            borderTopRightRadius: '1.25rem',
+            boxShadow: '0 -4px 24px rgba(0,0,0,0.12)',
+          }}>
+          <button
+            onClick={() => handleNavigate('dashboard')}
+            className="flex-1 flex flex-col items-center gap-0.5 pt-1 transition-all active:scale-90"
+            style={{ color: 'var(--tp-primary)' }}
+            aria-label="Home">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" />
+            </svg>
+            <span className="text-[10px] font-medium">Home</span>
+          </button>
+
+          <button
+            onClick={() => { handleNavigate('dashboard'); resetQueue(); openFullscreen() }}
+            className="flex-1 flex flex-col items-center gap-0.5 pt-1 transition-all active:scale-90"
+            style={{ color: 'var(--tp-primary)' }}
+            aria-label="Read">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" /><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+            </svg>
+            <span className="text-[10px] font-medium">Read</span>
+          </button>
+
+          <button
+            onClick={() => {
+              if (user) {
+                setShowWriteModal(true); setEditingPoem(null); setWriteTitle(''); setWriteContent(''); setWriteCategories([])
+              } else {
+                setAuthMode('signup'); setSlideOpen(true)
+              }
+            }}
+            className="-mt-5 w-14 h-14 flex-shrink-0 flex items-center justify-center rounded-full shadow-lg transition-all duration-200 hover:scale-110 active:scale-90"
+            style={{ backgroundColor: 'var(--tp-primary)', color: 'var(--tp-secondary)', border: '4px solid var(--tp-secondary)' }}
+            aria-label="Write a poem">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+          </button>
+
+          <button
+            onClick={() => handleNavigate('favorites')}
+            className="flex-1 flex flex-col items-center gap-0.5 pt-1 transition-all active:scale-90"
+            style={{ color: 'var(--tp-primary)' }}
+            aria-label="Favourites">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+            </svg>
+            <span className="text-[10px] font-medium">Favourites</span>
+          </button>
+
+          <button
+            onClick={() => handleNavigate('blend')}
+            className="flex-1 flex flex-col items-center gap-0.5 pt-1 transition-all active:scale-90"
+            style={{ color: 'var(--tp-primary)' }}
+            aria-label="Blend">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M17 1l4 4-4 4" /><path d="M3 11V9a4 4 0 0 1 4-4h14" /><path d="M7 23l-4-4 4-4" /><path d="M21 13v2a4 4 0 0 1-4 4H3" />
+            </svg>
+            <span className="text-[10px] font-medium">Blend</span>
+          </button>
+        </nav>
+      ) : (
+        bodyView === 'dashboard' && (
+          <button onClick={() => {
+            if (user) {
+              setShowWriteModal(true); setEditingPoem(null); setWriteTitle(''); setWriteContent(''); setWriteCategories([])
+            } else {
+              setAuthMode('signup'); setSlideOpen(true)
+            }
+          }}
+            className="fixed bottom-6 right-6 z-30 w-14 h-14 flex items-center justify-center shadow-lg transition-all duration-200 hover:scale-110 active:scale-95"
+            style={{ backgroundColor: 'var(--tp-secondary)', color: 'white', borderRadius: 'var(--tp-btn-radius, 9999px)' }}
+            aria-label="Write a poem">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+          </button>
+        )
       )}
     </div>
   )
