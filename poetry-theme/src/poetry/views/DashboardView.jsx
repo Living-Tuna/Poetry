@@ -9,6 +9,7 @@ import { SITE_NAME, isIndependentPoem, HERO_MISSION_TEXT, HERO_SAFETY_NOTICE } f
 import { apiFetchStats, apiGetCachedStats, STATS_CACHE_TTL } from '../../api/stats'
 import { apiSubscribeOnlineCount } from '../../api/presence'
 import { apiFetchNewsletterCount, apiSubscribeNewsletter } from '../../api/newsletter'
+import { fetchNearbyGroups } from './nearbyBooks'
 
 function formatCount(n) {
   if (!n) return '0'
@@ -17,19 +18,35 @@ function formatCount(n) {
   return (n / 1000000).toFixed(n < 10000000 ? 1 : 0).replace(/\.0$/, '') + 'm'
 }
 
+function compactDist(km) {
+  if (km === null || km === undefined) return '—'
+  if (km < 1) return '<1 km'
+  if (km < 1000) return `~${Math.round(km)} km`
+  return `~${(km / 1000).toFixed(1).replace(/\.0$/, '')}k km`
+}
+
 export default function DashboardView({
   user, slideOpen, setSlideOpen, setAuthMode, btnWhite,
   recentlyViewed, navigateToPoem,
   trending, trendingScroll, scrollTrending,
   latest, favoriteQuote, favorites,
   myPoems, myPoemsCachedOnly, onNavigate,
-  onNewPoem,
+  onNewPoem, onOpenBlendBook,
 }) {
   const [stats, setStats] = useState(null)
   const [onlineCount, setOnlineCount] = useState(0)
   const [newsletterCount, setNewsletterCount] = useState(0)
   const [nlEmail, setNlEmail] = useState('')
   const [nlState, setNlState] = useState('idle')
+  const [nearby, setNearby] = useState(null)
+
+  useEffect(() => {
+    let cancelled = false
+    fetchNearbyGroups(user)
+      .then((g) => { if (!cancelled) setNearby(g) })
+      .catch(() => { if (!cancelled) setNearby([]) })
+    return () => { cancelled = true }
+  }, [user])
 
   useEffect(() => {
     const stop = apiSubscribeOnlineCount(setOnlineCount)
@@ -91,6 +108,55 @@ export default function DashboardView({
           <svg width="16" height="16" className="mt-1 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--tp-text-secondary)' }}><path d="M9 18l6-6-6-6" /></svg>
         </div>
       </button>
+
+      {nearby && nearby.length > 0 && (
+        <section className="animate-fade-in">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-bold flex items-center gap-1.5" style={{ color: 'var(--tp-text)' }}>
+              <BookIcon size={16} /> Books Near You
+            </h3>
+            <button onClick={() => onNavigate('blend')}
+              className="text-xs font-medium transition-all hover:opacity-70"
+              style={{ color: 'var(--tp-secondary)' }}>
+              Open Blend →
+            </button>
+          </div>
+          <p className="text-[10px] mb-2" style={{ color: 'var(--tp-text-secondary)', opacity: 0.8 }}>
+            Identities stay private until a reader accepts your request.
+          </p>
+          <div className="space-y-2">
+            {nearby.slice(0, 4).map((book, i) => {
+              const near = book.holders.filter((x) => !x.isSelf && x.distanceKm !== null)[0]
+              const km = near ? near.distanceKm : null
+              const pages = book.holders[0]?.h?.page_count || ''
+              return (
+                <button key={i}
+                  onClick={() => onOpenBlendBook ? onOpenBlendBook(book) : onNavigate('blend')}
+                  className="w-full flex items-center gap-3 rounded-xl p-3.5 text-left transition-all duration-200 hover:scale-[1.01] active:scale-[0.99]"
+                  style={{ backgroundColor: 'var(--tp-surface)', border: '1.5px solid var(--tp-border)', boxShadow: 'var(--tp-card-shadow)' }}>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold truncate" style={{ color: 'var(--tp-text)', fontFamily: '"Playfair Display", serif' }}>
+                      {book.title}
+                    </p>
+                    {book.author && (
+                      <p className="text-xs mt-0.5 truncate" style={{ color: 'var(--tp-text-secondary)' }}>{book.author}</p>
+                    )}
+                    {pages && (
+                      <p className="text-[10px] mt-0.5" style={{ color: 'var(--tp-text-secondary)', opacity: 0.8 }}>
+                        {pages} pages
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex-shrink-0 text-right">
+                    <p className="text-[10px] font-semibold" style={{ color: 'var(--tp-secondary)' }}>{compactDist(km)}</p>
+                    <p className="text-[9px] mt-0.5" style={{ color: 'var(--tp-text-secondary)', opacity: 0.6 }}>Status →</p>
+                  </div>
+                </button>
+              )
+            })}
+          </div>
+        </section>
+      )}
 
       {favoriteQuote && (
         <section className="animate-fade-in">

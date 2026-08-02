@@ -18,7 +18,13 @@ export default function LocationModal({ onClose }) {
     localStorage.setItem('poetry_state', state)
     localStorage.setItem('poetry_zip', zip)
     try {
-      await supabase.auth.updateUser({ data: { country, state, zip } })
+      await supabase.auth.updateUser({
+        data: {
+          country, state, zip,
+          lat: localStorage.getItem('poetry_lat') || '',
+          lng: localStorage.getItem('poetry_lng') || '',
+        },
+      })
     } catch {}
     setBusy(false)
     onClose()

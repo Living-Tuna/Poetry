@@ -1,127 +1,56 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useBook } from '../contexts/BookContext'
 import { useAuth } from '../../auth/AuthContext'
-import { COUNTRIES } from '../../constants/languages'
 import { apiSearchShelfBooks } from '../../api/shelfBooks'
 import LegalLinks from '../components/LegalLinks'
+import PeerRequestCard, { isOngoingBlend } from '../components/PeerRequestCard'
+import {
+  groupBooks, addDistances, nearestDist, fetchNearbyGroups,
+} from './nearbyBooks'
 
-const geoCache = new Map()
-
-function countryCodeFor(name) {
-  return Object.entries(COUNTRIES).find(([, v]) => v.name === name)?.[0] || ''
-}
-
-async function geoFor(code, zip) {
-  if (!code || !zip) return null
-  const key = `${code}:${zip}`
-  if (geoCache.has(key)) return geoCache.get(key)
-  try {
-    const res = await fetch(`https://api.zippopotam.us/${code}/${zip}`)
-    if (!res.ok) throw new Error('not found')
-    const data = await res.json()
-    const p = data?.places?.[0]
-    const g = p ? { lat: Number(p.latitude), lng: Number(p.longitude) } : null
-    geoCache.set(key, g)
-    return g
-  } catch {
-    geoCache.set(key, null)
-    return null
-  }
-}
-
-function haversine(a, b) {
-  const R = 6371
-  const toRad = (deg) => (deg * Math.PI) / 180
-  const dLat = toRad(b.lat - a.lat)
-  const dLng = toRad(b.lng - a.lng)
-  const s = Math.sin(dLat / 2) ** 2 +
-    Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng / 2) ** 2
-  return 2 * R * Math.asin(Math.sqrt(s))
-}
-
-function formatDist(km) {
-  if (km < 1) return 'less than a km away'
-  if (km < 1000) return `~${Math.round(km)} km away`
-  return `~${(km / 1000).toFixed(1).replace(/\.0$/, '')}k km away`
-}
-
-function userLocation(user) {
-  return {
-    country: localStorage.getItem('poetry_country') || user?.country || '',
-    state: localStorage.getItem('poetry_state') || user?.state || '',
-    zip: localStorage.getItem('poetry_zip') || user?.zip || '',
-  }
-}
-
-function holderLocationLabel(h) {
-  const parts = []
-  if (h.state) parts.push(h.state)
-  if (h.country) parts.push(h.country)
-  return parts.join(', ') || 'Location unknown'
-}
-
-function holderSort(a, b) {
-  if (a.isSelf !== b.isSelf) return a.isSelf ? 1 : -1
-  const avail = (x) => (x.h.availability === 'available' ? 0 : 1)
-  if (avail(a) !== avail(b)) return avail(a) - avail(b)
-  if (a.distanceKm !== null && b.distanceKm !== null) return a.distanceKm - b.distanceKm
-  if (a.distanceKm !== null) return -1
-  if (b.distanceKm !== null) return 1
-  return 0
-}
-
-export default function BlendView({ onNavigate, focusQuery, onOpenAuth }) {
-  const { sendRequest, addNotif } = useBook()
+export default function BlendView({ onNavigate, focusQuery, onOpenAuth, onOpenChat }) {
+  const { sendRequest, addNotif, inbox } = useBook()
   const { user } = useAuth()
   const [query, setQuery] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [results, setResults] = useState(null)
   const [requestedKey, setRequestedKey] = useState(null)
-  const runRef = useRef(null)
+  const me = user?.username || ''
+  const focusBook = focusQuery?.book || null
+
+  const ongoingBooks = useMemo(() => {
+    const groups = results || []
+    return groups.filter((b) => isOngoingBlend(inbox, me, b.title))
+  }, [results, inbox, me])
+
+  async function loadNearby() {
+    setBusy(true)
+    setError('')
+    setResults(null)
+    try {
+      const groups = await fetchNearbyGroups(user)
+      setResults(groups)
+    } catch {
+      setError('Could not load nearby books — please try again.')
+      setResults([])
+    } finally {
+      setBusy(false)
+    }
+  }
 
   async function runSearch(term) {
     const t = (term || '').trim()
-    console.log('[BlendView] runSearch', t, 'busy', busy)
     if (!t || busy) return
     setBusy(true)
     setError('')
     setResults(null)
     try {
       const rows = await apiSearchShelfBooks(t)
-      console.log('[BlendView] rows', t, rows.length)
-
-      const groups = new Map()
-      for (const r of rows) {
-        const key = `${r.title.trim().toLowerCase()}||${(r.author || '').trim().toLowerCase()}`
-        if (!groups.has(key)) {
-          groups.set(key, { title: r.title, author: r.author, subtitle: r.subtitle, summary: r.summary, holders: [] })
-        }
-        groups.get(key).holders.push(r)
-      }
-
-      const req = userLocation(user)
-      const reqGeo = req.country && req.zip
-        ? await geoFor(countryCodeFor(req.country), req.zip)
-        : null
-
-      const out = []
-      for (const g of groups.values()) {
-        const holders = []
-        for (const h of g.holders) {
-          const isSelf = h.user_id === user?.id
-          let distanceKm = null
-          if (!isSelf && reqGeo && h.country && h.zip) {
-            const g2 = await geoFor(countryCodeFor(h.country), h.zip)
-            if (g2) distanceKm = haversine(reqGeo, g2)
-          }
-          holders.push({ h, distanceKm, isSelf })
-        }
-        holders.sort(holderSort)
-        out.push({ ...g, holders })
-      }
-      setResults(out)
-      console.log('[BlendView] done → groups', out.length, out.map((g) => `${g.title} (${g.holders.length} holders)`))
+      const groups = groupBooks(rows, user)
+      await addDistances(groups, user)
+      groups.sort((a, b) => nearestDist(a) - nearestDist(b))
+      setResults(groups)
     } catch {
       setError('Search failed — try again.')
       setResults([])
@@ -129,33 +58,32 @@ export default function BlendView({ onNavigate, focusQuery, onOpenAuth }) {
       setBusy(false)
     }
   }
-  runRef.current = runSearch
+
+  useEffect(() => { loadNearby() }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    console.log('[BlendView] focusQuery effect', focusQuery)
-    if (focusQuery && focusQuery.q) {
+    if (focusQuery && focusQuery.q && !focusQuery.book) {
       setQuery(focusQuery.q)
-      runRef.current(focusQuery.q)
+      runSearch(focusQuery.q)
     }
-  }, [focusQuery])
+  }, [focusQuery]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleRequest(book, holder) {
-    const holderName = holder.h.holder_username || holder.h.holder_name || 'Reader'
+    const holderName = holder.h.holder_username || 'Reader'
     if (!user) {
       if (onOpenAuth) { onOpenAuth(); return }
       addNotif('Sign in to request a book')
       return
     }
-    const key = `${book.title}|${holder.h.holder_username || holderName}`
+    const key = `${book.title}|${holderName}`
     if (requestedKey === key) return
-    sendRequest(holder.h.holder_username || holderName, {
+    sendRequest(holderName, {
       bookTitle: book.title,
       author: book.author || '',
       message: `Hai, I'm interested in reading "${book.title}" can you please share.`,
     })
-    addNotif(`Request sent to ${holderName} for "${book.title}"`)
+    addNotif(`Request sent to a nearby reader for "${book.title}"`)
     setRequestedKey(key)
-    setTimeout(() => { if (onNavigate) onNavigate('inbox') }, 700)
   }
 
   return (
@@ -173,7 +101,42 @@ export default function BlendView({ onNavigate, focusQuery, onOpenAuth }) {
         </h2>
       </div>
 
-      {!results && (
+      <div className="relative mb-5">
+        <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); runSearch(query) } }}
+          placeholder="Search a book by title or author…"
+          className="w-full px-4 py-3 rounded-xl text-sm outline-none"
+          style={{ backgroundColor: 'var(--tp-surface)', color: 'var(--tp-text)', border: '1.5px solid var(--tp-border)' }} />
+        <button onClick={() => runSearch(query)}
+          className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-lg transition-all hover:scale-105 active:scale-95"
+          style={{ color: 'var(--tp-secondary)' }} aria-label="Search">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <circle cx="11" cy="11" r="8" />
+            <path d="m21 21-4.35-4.35" />
+          </svg>
+        </button>
+      </div>
+
+      {focusBook && (
+        <div className="space-y-3 mb-4">
+          <div className="rounded-2xl p-3" style={{ backgroundColor: 'color-mix(in srgb, var(--tp-secondary) 8%, transparent)', border: '1.5px solid var(--tp-border)' }}>
+            <p className="text-[10px] font-bold mb-2 tracking-wide" style={{ color: 'var(--tp-secondary)' }}>
+              {isOngoingBlend(inbox, me, focusBook.title) ? 'Your blend' : 'Request this book'}
+            </p>
+            <PeerRequestCard
+              book={focusBook}
+              user={user}
+              inbox={inbox}
+              onRequest={handleRequest}
+              onOpenChat={(contact) => { if (onOpenChat) onOpenChat(contact) }}
+            />
+          </div>
+        </div>
+      )}
+
+      {!focusBook && !results && !busy && (
         <div className="rounded-xl p-8 text-center" style={{ backgroundColor: 'var(--tp-surface)', border: '1.5px dashed var(--tp-border)' }}>
           <p className="text-sm" style={{ color: 'var(--tp-text-secondary)' }}>
             Use the search bar above to find a book — discover nearby readers who have it.
@@ -188,7 +151,7 @@ export default function BlendView({ onNavigate, focusQuery, onOpenAuth }) {
         <div className="flex items-center justify-center gap-2 py-8">
           <span className="w-5 h-5 rounded-full border-2 border-transparent animate-spin inline-block"
             style={{ borderTopColor: 'var(--tp-secondary)' }} />
-          <span className="text-xs" style={{ color: 'var(--tp-text-secondary)' }}>Searching the world for "{query}"...</span>
+          <span className="text-xs" style={{ color: 'var(--tp-text-secondary)' }}>Finding books near you...</span>
         </div>
       )}
 
@@ -198,83 +161,66 @@ export default function BlendView({ onNavigate, focusQuery, onOpenAuth }) {
         </div>
       )}
 
-      {results && results.length === 0 && !busy && !error && (
+      {results && results.length === 0 && !busy && !error && !focusBook && (
         <div className="rounded-xl p-6 text-center" style={{ backgroundColor: 'var(--tp-surface)', border: '1.5px dashed var(--tp-border)' }}>
           <p className="text-sm" style={{ color: 'var(--tp-text-secondary)' }}>
-            No one has listed this book yet. Try a different name, or add it to your shelf to make it findable.
+            No books listed yet. Try searching by name, or add a book to your shelf to make it findable.
           </p>
         </div>
       )}
 
-      {results && results.length > 0 && !busy && (
+      {query && results && results.length > 0 && !busy && (
         <div className="space-y-3">
           <p className="text-xs font-semibold mb-2" style={{ color: 'var(--tp-text-secondary)' }}>
             {results.length} book{results.length > 1 ? 's' : ''} found for "{query}"
           </p>
           {results.map((book, i) => (
-            <div key={i} className="rounded-xl p-4 transition-all duration-200"
-              style={{ backgroundColor: 'var(--tp-surface)', border: '1.5px solid var(--tp-border)' }}>
-              <p className="text-sm font-bold" style={{ color: 'var(--tp-text)' }}>{book.title}</p>
-              <p className="text-xs mt-0.5" style={{ color: 'var(--tp-secondary)' }}>{book.author}</p>
-              {book.subtitle && <p className="text-[10px] mt-0.5" style={{ color: 'var(--tp-text-secondary)' }}>{book.subtitle}</p>}
-
-              <div className="mt-3 pt-3 space-y-2" style={{ borderTop: '1px solid var(--tp-border)' }}>
-                <p className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: 'var(--tp-text-secondary)' }}>
-                  {book.holders.length} holder{book.holders.length > 1 ? 's' : ''}
-                </p>
-                {book.holders.map((item, j) => (
-                  <div key={j} className="flex items-center justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      <p className="text-xs font-semibold" style={{ color: 'var(--tp-text)' }}>
-                        {item.h.holder_name || item.h.holder_username || 'Reader'}
-                      </p>
-                      <p className="text-[10px] mt-0.5" style={{ color: 'var(--tp-text-secondary)' }}>
-                        {item.distanceKm !== null ? (
-                          <span style={{ color: 'var(--tp-secondary)' }}>{formatDist(item.distanceKm)}</span>
-                        ) : (
-                          holderLocationLabel(item.h)
-                        )}
-                      </p>
-                    </div>
-                    {item.isSelf ? (
-                      <span className="text-[10px] px-2 py-0.5 rounded-full whitespace-nowrap"
-                        style={{ backgroundColor: 'color-mix(in srgb, #22c55e 18%, transparent)', color: '#22c55e' }}>
-                        You hold this
-                      </span>
-                    ) : item.h.availability === 'available' ? (
-                      (() => {
-                        const reqKey = `${book.title}|${item.h.holder_username || item.h.holder_name || 'Reader'}`
-                        const sent = requestedKey === reqKey
-                        return (
-                          <button onClick={() => handleRequest(book, item)} disabled={sent}
-                            className="px-3 py-1.5 rounded-xl text-xs font-medium text-white transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-90 whitespace-nowrap"
-                            style={{ backgroundColor: sent ? '#22c55e' : 'var(--tp-secondary)' }}>
-                            {sent ? (
-                              <span className="inline-flex items-center gap-1 animate-pop-in">
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                                  <path d="M20 6L9 17l-5-5" />
-                                </svg>
-                                Sent
-                              </span>
-                            ) : 'Request'}
-                          </button>
-                        )
-                      })()
-                    ) : (
-                      <span className="text-[10px] px-2 py-0.5 rounded-full whitespace-nowrap"
-                        style={{ backgroundColor: 'color-mix(in srgb, #fbbf24 18%, transparent)', color: '#fbbf24' }}>
-                        In transit
-                      </span>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
+            <PeerRequestCard
+              key={i}
+              book={book}
+              user={user}
+              inbox={inbox}
+              onRequest={handleRequest}
+              onOpenChat={(contact) => { if (onOpenChat) onOpenChat(contact) }}
+            />
           ))}
         </div>
       )}
 
+      {!query && results && results.length > 0 && !busy && (
+        <div className="space-y-3">
+          {ongoingBooks.length > 0 ? (
+            <>
+              <p className="text-xs font-semibold mb-2" style={{ color: 'var(--tp-text-secondary)' }}>
+                {ongoingBooks.length} ongoing blend{ongoingBooks.length > 1 ? 's' : ''}
+              </p>
+              {ongoingBooks
+                .filter((b) => !focusBook || b.title !== focusBook.title)
+                .map((book, i) => (
+                  <PeerRequestCard
+                    key={i}
+                    book={book}
+                    user={user}
+                    inbox={inbox}
+                    onRequest={handleRequest}
+                    onOpenChat={(contact) => { if (onOpenChat) onOpenChat(contact) }}
+                  />
+                ))}
+            </>
+          ) : (
+            <div className="rounded-xl p-6 text-center" style={{ backgroundColor: 'var(--tp-surface)', border: '1.5px dashed var(--tp-border)' }}>
+              <p className="text-sm" style={{ color: 'var(--tp-text-secondary)' }}>
+                No ongoing blends yet. Search above or tap a book under "Books Near You" to start a request.
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="pt-4 pb-2 mt-6" style={{ borderTop: '1px solid var(--tp-border)' }}>
+        <p className="text-[10px] text-center mb-2" style={{ color: 'var(--tp-text-secondary)', opacity: 0.7 }}>
+          Reader details stay hidden — they are shared only after they accept your request in the inbox.
+        </p>
         <LegalLinks onNavigate={onNavigate} />
       </div>
     </div>

@@ -21,41 +21,53 @@ function CheckIcon({ size = 14 }) {
   )
 }
 
-export default function LocationFields({ country, setCountry, state, setState, zip, setZip, inputStyle, onInputFocus, onInputBlur }) {
+export default function LocationFields({ country, setCountry, state, setState, zip, setZip, inputStyle, onInputFocus, onInputBlur, autoDetect = true }) {
   const style = inputStyle || defaultStyle
   const [stateLoading, setStateLoading] = useState(false)
   const [autoState, setAutoState] = useState(false)
   const [fetchFailed, setFetchFailed] = useState(false)
-  const [autoBusy, setAutoBusy] = useState(true)
+  const [autoBusy, setAutoBusy] = useState(autoDetect)
   const [autoFailed, setAutoFailed] = useState(false)
   const [autoOk, setAutoOk] = useState(false)
-  const [manual, setManual] = useState(false)
+  const [manual, setManual] = useState(!autoDetect)
   const timer = useRef(null)
 
-  useEffect(() => {
-    let cancelled = false
+  function persistCoords(loc) {
+    if (loc.lat) localStorage.setItem('poetry_lat', String(loc.lat))
+    if (loc.lng) localStorage.setItem('poetry_lng', String(loc.lng))
+  }
+
+  function runDetect() {
     setAutoBusy(true)
+    setAutoFailed(false)
     setManual(false)
-    apiAutoDetectLocation()
+    return apiAutoDetectLocation()
       .then((loc) => {
-        if (cancelled) return
         if (loc.country && !country) setCountry(loc.country)
         if (loc.state && !state) {
           setState(loc.state)
           setAutoState(true)
         }
         if (loc.zip && !zip) setZip(loc.zip)
+        persistCoords(loc)
         setAutoOk(!!loc.country)
         setAutoFailed(!loc.country)
         if (!loc.country) setManual(true)
+        return loc
       })
       .catch(() => {
-        if (!cancelled) { setAutoFailed(true); setManual(true) }
+        setAutoFailed(true)
+        setManual(true)
+        return null
       })
       .finally(() => {
-        if (!cancelled) setAutoBusy(false)
+        setAutoBusy(false)
       })
-    return () => { cancelled = true }
+  }
+
+  useEffect(() => {
+    if (!autoDetect) return
+    runDetect()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -176,6 +188,14 @@ export default function LocationFields({ country, setCountry, state, setState, z
           </div>
           {zipStateInput}
         </>
+      )}
+
+      {!autoDetect && (
+        <button type="button" onClick={runDetect} disabled={autoBusy}
+          className="w-full py-2.5 rounded-xl text-xs font-semibold transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-60"
+          style={{ color: 'var(--tp-secondary)', backgroundColor: 'color-mix(in srgb, var(--tp-secondary) 12%, transparent)' }}>
+          {autoBusy ? 'Detecting…' : 'Detect automatically'}
+        </button>
       )}
 
       {showSelector && (

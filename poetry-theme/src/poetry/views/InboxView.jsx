@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { useBook } from '../contexts/BookContext'
 import { useAuth } from '../../auth/AuthContext'
+import { contactLabel } from '../components/PeerRequestCard'
 
 function fmtTime(ts) {
   try {
@@ -72,7 +73,7 @@ export default function InboxView({ onNavigate, openContact, onOpenContact }) {
     const thread = openConv.messages
     const bookTitle = thread[thread.length - 1]?.bookTitle || ''
     sendMessage(openConv.contact, bookTitle, replyMsg.trim())
-    addNotif(`Reply sent to ${openConv.contact}`)
+    addNotif(`Reply sent to ${contactLabel(inbox, me, openConv.contact)}`)
     setReplyMsg('')
   }
 
@@ -85,7 +86,7 @@ export default function InboxView({ onNavigate, openContact, onOpenContact }) {
       agree,
     })
     addNotif(agree
-      ? `You agreed to share "${pendingRequest.bookTitle}" with ${openConv.contact}`
+      ? `You agreed to share "${pendingRequest.bookTitle}" with ${contactLabel(inbox, me, openConv.contact)}`
       : `You declined sharing "${pendingRequest.bookTitle}"`)
   }
 
@@ -163,7 +164,7 @@ export default function InboxView({ onNavigate, openContact, onOpenContact }) {
           <div className="flex items-center gap-2 mb-3 p-3 rounded-xl animate-pop-in flex-shrink-0"
             style={{ backgroundColor: 'color-mix(in srgb, var(--tp-secondary) 10%, transparent)', border: '1px solid var(--tp-border)' }}>
             <span className="text-xs font-semibold flex-1" style={{ color: 'var(--tp-text-secondary)' }}>
-              {openConv.contact} wants to borrow "{pendingRequest.bookTitle}". Would you like to share?
+              {contactLabel(inbox, me, openConv.contact)} wants to borrow "{pendingRequest.bookTitle}". Would you like to share?
             </span>
             <button onClick={() => handleShareDecision(true)}
               className="px-4 py-1.5 rounded-xl text-xs font-medium text-white transition-all hover:brightness-110 active:scale-[0.97]"
@@ -178,7 +179,7 @@ export default function InboxView({ onNavigate, openContact, onOpenContact }) {
           <div className="flex items-center gap-2 mb-3 p-3 rounded-xl animate-pop-in flex-shrink-0"
             style={{ backgroundColor: 'color-mix(in srgb, #22c55e 10%, transparent)', border: '1px solid color-mix(in srgb, #22c55e 35%, transparent)' }}>
             <span className="text-xs font-semibold flex-1" style={{ color: 'var(--tp-text-secondary)' }}>
-              {openConv.contact} shared "{pendingReceived.bookTitle}" with you. Did you receive it?
+              {contactLabel(inbox, me, openConv.contact)} shared "{pendingReceived.bookTitle}" with you. Did you receive it?
             </span>
             <button onClick={() => handleReceivedConfirm(true)}
               className="px-4 py-1.5 rounded-xl text-xs font-medium text-white transition-all hover:brightness-110 active:scale-[0.97]"
@@ -233,7 +234,7 @@ export default function InboxView({ onNavigate, openContact, onOpenContact }) {
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <p className="text-sm font-bold truncate" style={{ color: 'var(--tp-text)' }}>{c.contact}</p>
+                      <p className="text-sm font-bold truncate" style={{ color: 'var(--tp-text)' }}>{contactLabel(inbox, me, c.contact)}</p>
                       {unread && <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: 'var(--tp-secondary)' }} />}
                     </div>
                     {last.bookTitle && (

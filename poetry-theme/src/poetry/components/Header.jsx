@@ -16,7 +16,7 @@ export default function Header({
   onMenuToggle, onProfileToggle, lang, onLangClick,
   allPoems, onSearchSelect, favorites, view,
   onOpenBooks, onOpenFavorites,
-  chatContact, chatName, onChatBack, onChatProfile,
+  chatContact, chatName, chatRevealed, onChatBack, onChatProfile,
   notice, onNoticeClick,
 }) {
   const scope = SCOPES[view] || 'poems'
@@ -175,15 +175,24 @@ export default function Header({
             </button>
             <div className="min-w-0 flex-1">
               <p className="text-base font-bold leading-tight truncate" style={{ fontFamily: '"Playfair Display", Georgia, serif' }}>
-                {chatName || chatContact}
+                {chatRevealed ? (chatName || chatContact) : 'Anonymous'}
               </p>
-              <p className="text-[10px] opacity-60 truncate">{chatName ? `@${chatContact}` : 'Conversation'}</p>
+              <p className="text-[10px] opacity-60 truncate">{chatRevealed ? (chatName ? `@${chatContact}` : 'Conversation') : 'Profile revealed after they approve'}</p>
             </div>
-            <button onClick={onChatProfile} className="p-1.5 rounded-xl transition-opacity hover:opacity-70 flex-shrink-0" aria-label="View profile">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="8" r="5" /><path d="M3 21v-2a7 7 0 0 1 7-7h4a7 7 0 0 1 7 7v2" />
-              </svg>
-            </button>
+            {chatRevealed ? (
+              <button onClick={onChatProfile} className="p-1.5 rounded-xl transition-opacity hover:opacity-70 flex-shrink-0" aria-label="View profile">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="8" r="5" /><path d="M3 21v-2a7 7 0 0 1 7-7h4a7 7 0 0 1 7 7v2" />
+                </svg>
+              </button>
+            ) : (
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                style={{ backgroundColor: 'color-mix(in srgb, var(--tp-text-secondary) 15%, transparent)' }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.5 }}>
+                  <circle cx="12" cy="8" r="5" /><path d="M3 21v-2a7 7 0 0 1 7-7h4a7 7 0 0 1 7 7v2" />
+                </svg>
+              </div>
+            )}
           </>
         ) : (
         <>

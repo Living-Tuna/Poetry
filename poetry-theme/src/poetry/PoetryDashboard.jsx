@@ -28,6 +28,7 @@ import ChangelogView from './components/ChangelogView'
 import LocationModal from './components/LocationModal'
 import { COUNTRIES } from '../constants/languages'
 import { useBook } from './contexts/BookContext'
+import { contactLabel, contactRevealed } from './components/PeerRequestCard'
 import { apiResolveUser } from '../api/messages'
 import { apiAutoDetectLocation } from '../api/location'
 import { supabase } from '../supabase/client'
@@ -261,6 +262,11 @@ export default function PoetryDashboard() {
     }
   }
 
+  function handleOpenBlendBook(book) {
+    setBlendFocus({ q: book?.title || '', n: Date.now(), book })
+    setBodyView('blend')
+  }
+
   useEffect(() => {
     if (!chatContact) { setChatContactInfo(null); return }
     let alive = true
@@ -269,6 +275,8 @@ export default function PoetryDashboard() {
       .catch(() => {})
     return () => { alive = false }
   }, [chatContact])
+
+  const chatRevealed = contactRevealed(inbox, user?.username || '', chatContact)
 
   const seenMsgIds = useRef(new Set())
   const seenNotifIds = useRef(new Set())
@@ -296,8 +304,9 @@ export default function PoetryDashboard() {
         : kind === 'share_no' ? 'Share declined'
           : kind === 'received_yes' ? 'Book received'
             : 'New message'
+    const sender = contactLabel(inbox, user?.username || '', incoming.from)
     setNotice({
-      text: `${label} from ${incoming.from}${incoming.bookTitle ? ` · ${incoming.bookTitle}` : ''}`,
+      text: `${label} from ${sender}${incoming.bookTitle ? ` · ${incoming.bookTitle}` : ''}`,
       action: () => { setChatContact(incoming.from); handleNavigate('inbox') },
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -337,10 +346,14 @@ export default function PoetryDashboard() {
           country: loc.country || country,
           state: loc.state || state,
           zip: loc.zip || zip,
+          lat: loc.lat ? String(loc.lat) : localStorage.getItem('poetry_lat') || '',
+          lng: loc.lng ? String(loc.lng) : localStorage.getItem('poetry_lng') || '',
         }
         if (detected.country) localStorage.setItem('poetry_country', detected.country)
         if (detected.state) localStorage.setItem('poetry_state', detected.state)
         if (detected.zip) localStorage.setItem('poetry_zip', detected.zip)
+        if (detected.lat) localStorage.setItem('poetry_lat', detected.lat)
+        if (detected.lng) localStorage.setItem('poetry_lng', detected.lng)
         if (detected.country && detected.state && detected.zip && user) {
           try { await supabase.auth.updateUser({ data: detected }) } catch {}
         }
@@ -377,6 +390,7 @@ export default function PoetryDashboard() {
         onOpenFavorites={(fav) => { console.log('[Dashboard] onOpenFavorites', fav?.key); setFocusFavorite(fav || null); handleNavigate('favorites') }}
         chatContact={chatContact}
         chatName={chatContactInfo?.name}
+        chatRevealed={chatRevealed}
         onChatBack={() => setChatContact(null)}
         onChatProfile={() => setShowPersonProfile(true)}
         notice={notice}
@@ -489,7 +503,7 @@ export default function PoetryDashboard() {
       />
 
       {/* Body — view switching */}
-      <main ref={mainRef} className="flex-1 overflow-y-auto" style={{ backgroundColor: 'var(--tp-bg)', paddingBottom: isMobile ? 84 : 0 }}>
+      <main ref={mainRef} className="flex-1 overflow-y-auto" style={{ backgroundColor: 'var(--tp-bg)', paddingBottom: isMobile && bodyView === 'dashboard' ? 84 : 0 }}>
         {bodyView === 'dashboard' && (
           <DashboardView
             user={user} slideOpen={slideOpen} setSlideOpen={setSlideOpen}
@@ -503,6 +517,7 @@ export default function PoetryDashboard() {
             myPoems={myPoems} myPoemsCachedOnly={myPoemsCachedOnly}
             onNavigate={handleNavigate}
             onNewPoem={() => { setShowWriteModal(true); setEditingPoem(null); setWriteTitle(''); setWriteContent(''); setWriteCategories([]) }}
+            onOpenBlendBook={handleOpenBlendBook}
           />
         )}
         {bodyView === 'my-writings' && (
@@ -550,6 +565,7 @@ export default function PoetryDashboard() {
             onNavigate={handleNavigate}
             focusQuery={blendFocus}
             onOpenAuth={() => { setAuthMode('signup'); setSlideOpen(true) }}
+            onOpenChat={(contact) => { setMenuOpen(false); setChatContact(contact); handleNavigate('inbox') }}
           />
         )}
         {bodyView === 'inbox' && (
@@ -564,8 +580,8 @@ export default function PoetryDashboard() {
         {bodyView === 'changelog' && <ChangelogView onNavigate={handleNavigate} />}
       </main>
 
-      {/* Bottom bar (mobile) / floating write button (desktop) */}
-      {isMobile ? (
+      {/* Bottom bar (mobile home) / floating write button (desktop) */}
+      {isMobile && bodyView === 'dashboard' ? (
         <nav
           className="fixed bottom-0 left-0 right-0 z-30 flex items-end justify-around px-2"
           style={{

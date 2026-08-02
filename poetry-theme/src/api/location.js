@@ -86,7 +86,7 @@ export function apiAutoDetectLocation() {
             } catch {}
           }
           if (!state) state = stateFromReverseGeocode(data)
-          resolve({ country, state, zip })
+          resolve({ country, state, zip, lat: latitude, lng: longitude })
         } catch (err) {
           reject(err)
         }

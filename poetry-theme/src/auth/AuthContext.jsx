@@ -23,6 +23,8 @@ export function AuthProvider({ children }) {
           country: meta.country || '',
           state: meta.state || '',
           zip: meta.zip || '',
+          lat: meta.lat ? String(meta.lat) : '',
+          lng: meta.lng ? String(meta.lng) : '',
         })
       }
       setLoading(false)
@@ -38,6 +40,8 @@ export function AuthProvider({ children }) {
           country: meta.country || '',
           state: meta.state || '',
           zip: meta.zip || '',
+          lat: meta.lat ? String(meta.lat) : '',
+          lng: meta.lng ? String(meta.lng) : '',
         })
       } else {
         setUser(null)

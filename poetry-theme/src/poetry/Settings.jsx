@@ -3,6 +3,8 @@ import { useTheme } from '../theme/ThemeContext'
 import { themeList } from '../theme/themes'
 import LocationFields from './components/LocationFields'
 import { usePoetry } from './PoetryContext'
+import { supabase } from '../supabase/client'
+import { useAuth } from '../auth/AuthContext'
 
 const LANGUAGES = [
   { code: 'en', label: 'English' },
@@ -77,6 +79,7 @@ function SettingCard({ icon, title, value, open, onClick, children }) {
 }
 
 export default function Settings({ onNavigate }) {
+  const { user } = useAuth()
   const { themeId, setTheme } = useTheme()
   const { changeLanguage } = usePoetry()
   const savedLang = localStorage.getItem('poetry_lang') || 'en'
@@ -100,6 +103,17 @@ export default function Settings({ onNavigate }) {
     if (country) localStorage.setItem('poetry_country', country)
     if (state) localStorage.setItem('poetry_state', state)
     if (zip) localStorage.setItem('poetry_zip', zip)
+    if (country && state && zip && user) {
+      supabase.auth.updateUser({
+        data: {
+          country,
+          state,
+          zip,
+          lat: localStorage.getItem('poetry_lat') || '',
+          lng: localStorage.getItem('poetry_lng') || '',
+        },
+      }).catch(() => {})
+    }
     onNavigate('dashboard')
   }
 
@@ -183,6 +197,7 @@ export default function Settings({ onNavigate }) {
             country={country} setCountry={setCountry}
             state={state} setState={setState}
             zip={zip} setZip={setZip}
+            autoDetect={false}
           />
         </SettingCard>
       </div>

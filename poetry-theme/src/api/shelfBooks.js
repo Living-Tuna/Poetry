@@ -14,6 +14,8 @@ export async function apiSyncShelfBooks(userId, items) {
     country: b.country || '',
     state: b.state || '',
     zip: b.zip || '',
+    lat: b.lat || '',
+    lng: b.lng || '',
   }))
   const { error } = await supabase.from('shelf_books').insert(rows)
   if (error) throw error
@@ -27,6 +29,16 @@ export async function apiSearchShelfBooks(query) {
     .select('*')
     .or(`title.ilike.%${q}%,author.ilike.%${q}%`)
     .limit(200)
+  if (error) throw error
+  return data || []
+}
+
+export async function apiFetchAllShelfBooks() {
+  const { data, error } = await supabase
+    .from('shelf_books_with_users')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(500)
   if (error) throw error
   return data || []
 }

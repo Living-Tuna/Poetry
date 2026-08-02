@@ -80,6 +80,8 @@ export function BookProvider({ children }) {
       country: localStorage.getItem('poetry_country') || user?.country || '',
       state: localStorage.getItem('poetry_state') || user?.state || '',
       zip: localStorage.getItem('poetry_zip') || user?.zip || '',
+      lat: localStorage.getItem('poetry_lat') || user?.lat || '',
+      lng: localStorage.getItem('poetry_lng') || user?.lng || '',
     }
     setShelf((prev) => [{
       ...book, ...loc, id: Date.now(), addedAt: new Date().toISOString(),

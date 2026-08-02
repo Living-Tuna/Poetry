@@ -1,5 +1,17 @@
 const logs = [
   {
+    versionCode: '1.3.1',
+    date: 'August 2026',
+    features: [
+      'Books Near You on the home screen — the nearest four books at a glance with title, author, page count, and how far each one is; tapping one jumps straight to its Blend card',
+      'Blend is now built around the reader, not a radar — request a book from a nearby reader and watch an arrow go from you to them, with an "Awaiting response" badge until they answer',
+      'Blend now shows only your ongoing blends — the books you have requested that are still awaiting an answer or already accepted',
+      'Reader identities stay truly private — in Blend and in the Inbox the other person shows as "Anonymous" until they approve your request, and only then do their name and profile appear and the chat unlock',
+      'Approved blends flip into a green arrow, the reader\'s name, and an Inbox button so you can talk about the exchange',
+      'Location is now saved for good — your detected coordinates stick across sessions, so "nearby" distances are accurate even without a ZIP code, and Settings no longer keeps asking for your location',
+    ],
+  },
+  {
     versionCode: '1.2.7',
     date: 'August 2026',
     features: [
