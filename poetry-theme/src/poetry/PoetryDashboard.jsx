@@ -40,10 +40,9 @@ export default function PoetryDashboard() {
     navigateToPoem, myPoems, addMyPoem, updateMyPoem, deleteMyPoem,
     editRequest, setEditRequest, recentlyViewed, allPoems,
     editOnOpen, setEditOnOpen, myPoemsCachedOnly,
-    reading,
+    reading, lang, changeLanguage,
   } = usePoetry()
   const { shelf, inbox, inboxUnread, unreadCount, notifs } = useBook()
-  const [lang, setLang] = useState(localStorage.getItem('poetry_lang') || 'en')
   const [languagePickerOpen, setLanguagePickerOpen] = useState(false)
   const [chatContact, setChatContact] = useState(null)
   const [chatContactInfo, setChatContactInfo] = useState(null)
@@ -113,8 +112,7 @@ export default function PoetryDashboard() {
     const knownLangs = new Set(Object.values(COUNTRIES).flatMap((c) => c.languages.map((l) => l.code)))
     knownLangs.add('en')
     if (seg && knownLangs.has(seg)) {
-      localStorage.setItem('poetry_lang', seg)
-      setLang(seg)
+      changeLanguage(seg)
       setBodyView('dashboard')
     }     else if (seg === 'shelf') setBodyView('shelf')
     else if (seg === 'blend') setBodyView('blend')
@@ -123,12 +121,12 @@ export default function PoetryDashboard() {
     else if (seg === 'terms') setBodyView('terms')
     else if (seg === 'policy') setBodyView('privacy')
     else if (seg === 'about') setBodyView('about')
-    else if (seg) navigate(`/${lang}`)
-  }, [location.pathname, lang, navigate])
+    else if (seg) navigate(`/${localStorage.getItem('poetry_lang') || 'en'}`)
+  }, [location.pathname, navigate, changeLanguage])
 
   function handleLanguageSelect(code) {
-    localStorage.setItem('poetry_lang', code)
-    setLang(code)
+    changeLanguage(code)
+    navigate(`/${code}`)
     setLanguagePickerOpen(false)
   }
 
@@ -363,7 +361,7 @@ export default function PoetryDashboard() {
         onProfileToggle={() => setSlideOpen(!slideOpen)}
         lang={lang}
         onLangClick={() => setLanguagePickerOpen(true)}
-        allPoems={allPoems}
+        allPoems={filteredPoems}
         onSearchSelect={navigateToPoem}
         favorites={favorites}
         view={bodyView}
@@ -488,7 +486,7 @@ export default function PoetryDashboard() {
           <DashboardView
             user={user} slideOpen={slideOpen} setSlideOpen={setSlideOpen}
             setAuthMode={setAuthMode} btnWhite={btnWhite}
-            recentlyViewed={recentlyViewed} navigateToPoem={navigateToPoem}
+            recentlyViewed={recentlyViewed.filter((p) => (p.language || 'en') === lang)} navigateToPoem={navigateToPoem}
             trending={trending} trendingScroll={trendingScroll}
             scrollTrending={scrollTrending}
             latest={latest}

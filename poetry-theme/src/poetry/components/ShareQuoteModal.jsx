@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import html2canvas from 'html2canvas'
-import { SITE_NAME, shareText } from '../../constants'
+import { shareText } from '../../constants'
 
 export default function ShareQuoteModal({ favorite, favorites, initialIndex, onClose, inline = false }) {
   const cardRef = useRef(null)
@@ -55,7 +55,12 @@ export default function ShareQuoteModal({ favorite, favorites, initialIndex, onC
   }
 
   async function handleShare() {
-    if (!navigator.share) { handleDownload(); return }
+    if (!navigator.share) {
+      try {
+        await navigator.clipboard.writeText(shareText())
+      } catch {}
+      return
+    }
     setBusy(true)
     try {
       const canvas = await getCanvas()
@@ -64,21 +69,9 @@ export default function ShareQuoteModal({ favorite, favorites, initialIndex, onC
       const file = new File([blob], `poetry-${poemTitle.replace(/\s+/g, '-').toLowerCase()}.png`, { type: 'image/png' })
       await navigator.share({
         title: `"${lineText}"`,
-        text: `${shareText()}: "${lineText}" — ${poemTitle} by ${author}`,
+        text: `${shareText()} — "${lineText}" — ${poemTitle} by ${author}`,
         files: [file],
       })
-    } catch { }
-    setBusy(false)
-  }
-
-  async function handleDownload() {
-    setBusy(true)
-    try {
-      const canvas = await getCanvas()
-      const link = document.createElement('a')
-      link.download = `poetry-${poemTitle.replace(/\s+/g, '-').toLowerCase()}.png`
-      link.href = canvas.toDataURL('image/png')
-      link.click()
     } catch { }
     setBusy(false)
   }
@@ -145,9 +138,6 @@ export default function ShareQuoteModal({ favorite, favorites, initialIndex, onC
               {date}
             </p>
           )}
-          <p className="text-[9px] mt-2 font-semibold tracking-wider uppercase" style={{ color: 'var(--tp-secondary)', opacity: 0.5 }}>
-            {SITE_NAME}
-          </p>
         </div>
       </div>
 
@@ -166,11 +156,6 @@ export default function ShareQuoteModal({ favorite, favorites, initialIndex, onC
             </svg>
           </button>
         )}
-        <button onClick={handleDownload} disabled={busy}
-          className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium transition-all hover:opacity-80 active:scale-95 disabled:opacity-50"
-          style={{ backgroundColor: 'var(--tp-surface)', color: 'var(--tp-text)', border: '1.5px solid var(--tp-border)' }}>
-          {busy ? '⋯' : 'Download'}
-        </button>
       </div>
     </>
   )

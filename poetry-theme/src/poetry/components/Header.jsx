@@ -165,7 +165,7 @@ export default function Header({
           boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
         }}
       >
-        <div className="px-4 py-3 flex items-center gap-2">
+        <div className="px-4 py-3 flex items-center gap-2 relative">
         {isChat ? (
           <>
             <button onClick={onChatBack} className="p-1.5 rounded-xl transition-opacity hover:opacity-70 flex-shrink-0" aria-label="Back to inbox">
@@ -263,11 +263,11 @@ export default function Header({
         {notice && (
           <button
             onClick={onNoticeClick}
-            className="w-full flex items-center gap-2 px-4 pb-3 animate-fade-in"
+            className="absolute inset-x-0 top-0 h-full flex items-center gap-2 px-4 animate-slide-down"
             style={{
-              backgroundColor: 'rgba(255,255,255,0.06)',
+              backgroundColor: 'var(--tp-header-bg)',
               cursor: 'pointer',
-              borderTop: '1px solid rgba(255,255,255,0.08)',
+              zIndex: 10,
             }}
             aria-label="View notification"
           >

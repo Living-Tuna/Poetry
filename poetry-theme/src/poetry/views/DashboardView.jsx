@@ -7,6 +7,8 @@ import { ClockIcon, PenIcon, BookIcon, HeartIcon } from '../components/Icons'
 import AnnouncementBanner from '../components/AnnouncementBanner'
 import { SITE_NAME, isIndependentPoem, HERO_MISSION_TEXT, HERO_SAFETY_NOTICE } from '../../constants'
 import { apiFetchStats, apiGetCachedStats, STATS_CACHE_TTL } from '../../api/stats'
+import { apiSubscribeOnlineCount } from '../../api/presence'
+import { apiFetchNewsletterCount, apiSubscribeNewsletter } from '../../api/newsletter'
 
 function formatCount(n) {
   if (!n) return '0'
@@ -24,6 +26,37 @@ export default function DashboardView({
   onNewPoem,
 }) {
   const [stats, setStats] = useState(null)
+  const [onlineCount, setOnlineCount] = useState(0)
+  const [newsletterCount, setNewsletterCount] = useState(0)
+  const [nlEmail, setNlEmail] = useState('')
+  const [nlState, setNlState] = useState('idle')
+
+  useEffect(() => {
+    const stop = apiSubscribeOnlineCount(setOnlineCount)
+    return stop
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    apiFetchNewsletterCount()
+      .then((n) => { if (!cancelled) setNewsletterCount(n) })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [])
+
+  async function handleNewsletterSubmit(e) {
+    e.preventDefault()
+    if (nlState === 'submitting') return
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(nlEmail)) return
+    setNlState('submitting')
+    try {
+      await apiSubscribeNewsletter(nlEmail)
+      setNlState('done')
+      setNlEmail('')
+    } catch {
+      setNlState('error')
+    }
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -40,6 +73,44 @@ export default function DashboardView({
   return (
     <div className="px-4 py-5 max-w-2xl mx-auto w-full space-y-8">
       <AnnouncementBanner />
+
+      <button onClick={() => onNavigate('blend')}
+        className="w-full text-left rounded-xl p-4 animate-fade-in transition-all duration-200 hover:scale-[1.01] active:scale-[0.99]"
+        style={{ backgroundColor: 'var(--tp-surface)', border: '1.5px solid var(--tp-border)', boxShadow: 'var(--tp-card-shadow)' }}>
+        <div className="flex items-start gap-3">
+          <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+            style={{ backgroundColor: 'color-mix(in srgb, var(--tp-secondary) 15%, transparent)', color: 'var(--tp-secondary)' }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" /><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" /></svg>
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-bold" style={{ color: 'var(--tp-text)' }}>Need a book?</p>
+            <p className="text-xs mt-0.5 leading-relaxed" style={{ color: 'var(--tp-text-secondary)' }}>
+              Click here and discover who might have a copy of what you are looking for.
+            </p>
+          </div>
+          <svg width="16" height="16" className="mt-1 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--tp-text-secondary)' }}><path d="M9 18l6-6-6-6" /></svg>
+        </div>
+      </button>
+
+      {favoriteQuote && (
+        <section className="animate-fade-in">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-sm font-bold flex items-center gap-1.5" style={{ color: 'var(--tp-text)' }}>
+              <HeartIcon size={16} /> Favorite Line
+            </p>
+            {favorites.length > 1 && (
+              <span className="text-xs" style={{ color: 'var(--tp-text-secondary)' }}>Swipe card to browse</span>
+            )}
+          </div>
+          <ShareQuoteModal
+            inline
+            favorite={favoriteQuote}
+            favorites={favorites}
+            initialIndex={favorites.indexOf(favoriteQuote)}
+          />
+        </section>
+      )}
+
       <div className="text-center animate-fade-in">
         {user ? (
           <>
@@ -70,12 +141,22 @@ export default function DashboardView({
               </div>
               <div className="rounded-xl px-3 py-2.5 text-center" style={{ backgroundColor: 'var(--tp-surface)', border: '1.5px solid var(--tp-border)', boxShadow: 'var(--tp-card-shadow)' }}>
                 <p className="text-lg font-bold leading-tight" style={{ color: 'var(--tp-secondary)', fontFamily: '"Playfair Display", Georgia, serif' }}>{formatCount(stats.total_poems)}</p>
-                <p className="text-[10px] mt-0.5" style={{ color: 'var(--tp-text-secondary)' }}>Poems</p>
+                <p className="text-[10px] mt-0.5" style={{ color: 'var(--tp-text-secondary)' }}>Writings</p>
+              </div>
+              <div className="rounded-xl px-3 py-2.5 text-center" style={{ backgroundColor: 'var(--tp-surface)', border: '1.5px solid var(--tp-border)', boxShadow: 'var(--tp-card-shadow)' }}>
+                <p className="text-lg font-bold leading-tight" style={{ color: 'var(--tp-secondary)', fontFamily: '"Playfair Display", Georgia, serif' }}>{formatCount(stats.independent_poems)}</p>
+                <p className="text-[10px] mt-0.5" style={{ color: 'var(--tp-text-secondary)' }}>Independent writings</p>
+              </div>
+              <div className="rounded-xl px-3 py-2.5 text-center" style={{ backgroundColor: 'var(--tp-surface)', border: '1.5px solid var(--tp-border)', boxShadow: 'var(--tp-card-shadow)' }}>
+                <p className="text-lg font-bold leading-tight" style={{ color: 'var(--tp-secondary)', fontFamily: '"Playfair Display", Georgia, serif' }}>{formatCount(onlineCount)}</p>
+                <p className="text-[10px] mt-0.5" style={{ color: 'var(--tp-text-secondary)' }}>Online now</p>
+              </div>
+              <div className="rounded-xl px-3 py-2.5 text-center" style={{ backgroundColor: 'var(--tp-surface)', border: '1.5px solid var(--tp-border)', boxShadow: 'var(--tp-card-shadow)' }}>
+                <p className="text-lg font-bold leading-tight" style={{ color: 'var(--tp-secondary)', fontFamily: '"Playfair Display", Georgia, serif' }}>{formatCount(newsletterCount)}</p>
+                <p className="text-[10px] mt-0.5" style={{ color: 'var(--tp-text-secondary)' }}>Newsletter entries</p>
               </div>
             </div>
             <div className="flex items-center justify-center gap-2 mt-2 text-[10px]" style={{ color: 'var(--tp-text-secondary)' }}>
-              <span>{formatCount(stats.independent_poems)} independent</span>
-              <span>·</span>
               <span>{formatCount(stats.historic_poems)} historic</span>
             </div>
           </div>
@@ -91,6 +172,44 @@ export default function DashboardView({
           </p>
         </div>
       </div>
+
+      <section className="animate-fade-in">
+        <div className="rounded-xl p-4" style={{ backgroundColor: 'var(--tp-surface)', border: '1.5px solid var(--tp-border)', boxShadow: 'var(--tp-card-shadow)' }}>
+          <h3 className="text-sm font-bold flex items-center gap-1.5" style={{ color: 'var(--tp-text)' }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2" /><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" /></svg>
+            Join the Newsletter
+          </h3>
+          <p className="text-xs mt-1 leading-relaxed" style={{ color: 'var(--tp-text-secondary)' }}>
+            Selective daily wisdom through your mail — a single thoughtful verse and note, every day.
+          </p>
+          {nlState === 'done' ? (
+            <p className="text-sm mt-3 font-medium flex items-center gap-1.5" style={{ color: 'var(--tp-secondary)' }}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+              You're in! Watch your inbox tomorrow.
+            </p>
+          ) : (
+            <form onSubmit={handleNewsletterSubmit} className="mt-3 flex gap-2">
+              <input
+                type="email"
+                value={nlEmail}
+                onChange={(e) => setNlEmail(e.target.value)}
+                placeholder="you@example.com"
+                required
+                className="flex-1 min-w-0 px-3 py-2.5 rounded-xl text-sm outline-none"
+                style={{ backgroundColor: 'var(--tp-bg)', color: 'var(--tp-text)', border: '1.5px solid var(--tp-border)' }}
+              />
+              <button type="submit" disabled={nlState === 'submitting'}
+                className="px-4 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-60 flex-shrink-0"
+                style={{ backgroundColor: 'var(--tp-secondary)' }}>
+                {nlState === 'submitting' ? 'Joining…' : 'Join'}
+              </button>
+            </form>
+          )}
+          {nlState === 'error' && (
+            <p className="text-xs mt-2" style={{ color: '#ef4444' }}>Couldn't subscribe right now. Please try again.</p>
+          )}
+        </div>
+      </section>
 
       {recentlyViewed.length > 0 && (
         <section className="animate-fade-in">
@@ -109,25 +228,6 @@ export default function DashboardView({
               </button>
             ))}
           </div>
-        </section>
-      )}
-
-      {favoriteQuote && (
-        <section className="animate-fade-in">
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-sm font-bold flex items-center gap-1.5" style={{ color: 'var(--tp-text)' }}>
-              <HeartIcon size={16} /> Favorite Line
-            </p>
-            {favorites.length > 1 && (
-              <span className="text-xs" style={{ color: 'var(--tp-text-secondary)' }}>Swipe card to browse</span>
-            )}
-          </div>
-          <ShareQuoteModal
-            inline
-            favorite={favoriteQuote}
-            favorites={favorites}
-            initialIndex={favorites.indexOf(favoriteQuote)}
-          />
         </section>
       )}
 

@@ -44,6 +44,8 @@ export function PoetryProvider({ children }) {
   const likedRef = useRef(new Set(likedPoems))
   const loadedIds = useRef(new Set())
   const allRef = useRef([])
+  const [lang, setLang] = useState(() => localStorage.getItem('poetry_lang') || 'en')
+  const langRef = useRef(lang)
   const [reading, setReading] = useState(null)
   const readingRef = useRef(null)
   const saveReadingRef = useRef(null)
@@ -89,6 +91,21 @@ export function PoetryProvider({ children }) {
     setLikedPoems(arr)
   }, [user])
 
+  const poemsForLang = useCallback((code) => {
+    return allRef.current.filter((p) => (p.language || 'en') === code)
+  }, [])
+
+  const seedQueue = useCallback(() => {
+    const poems = poemsForLang(langRef.current)
+    if (poems.length > 0) {
+      const maxStart = Math.max(0, poems.length - 3)
+      const start = Math.min(Math.floor(Math.random() * maxStart), maxStart)
+      const slice = poems.slice(start, start + 3)
+      loadedIds.current = new Set(slice.map((p) => p.id))
+      setQueue(slice)
+    }
+  }, [poemsForLang])
+
   useEffect(() => {
     let cancelled = false
     async function load() {
@@ -97,13 +114,7 @@ export function PoetryProvider({ children }) {
         if (cancelled) return
         setAllPoems(data)
         allRef.current = data
-        if (data.length > 0) {
-          const maxStart = Math.max(0, data.length - 3)
-          const start = Math.min(Math.floor(Math.random() * maxStart), maxStart)
-          const slice = data.slice(start, start + 3)
-          loadedIds.current = new Set(slice.map((p) => p.id))
-          setQueue(slice)
-        }
+        seedQueue()
       } catch (err) {
         console.error('Failed to load poems from Supabase:', err)
       }
@@ -111,7 +122,7 @@ export function PoetryProvider({ children }) {
     }
     load()
     return () => { cancelled = true }
-  }, [])
+  }, [seedQueue])
 
   useEffect(() => {
     if (!user) { setMyPoems([]); return }
@@ -146,7 +157,7 @@ export function PoetryProvider({ children }) {
 
   const currentPoem = queue[index] || null
   const canSwipeLeft = index > 0
-  const canSwipeRight = index < queue.length - 1 || queue.length < allRef.current.length
+  const canSwipeRight = index < queue.length - 1 || queue.length < poemsForLang(langRef.current).length
 
   const isUserPoem = useCallback((poem) => {
     if (!poem) return false
@@ -154,13 +165,14 @@ export function PoetryProvider({ children }) {
   }, [myPoems])
 
   const enqueueNext = useCallback(() => {
-    if (queue.length >= allRef.current.length) return
-    const next = allRef.current.find((p) => !loadedIds.current.has(p.id))
+    const deck = poemsForLang(langRef.current)
+    if (queue.length >= deck.length) return
+    const next = deck.find((p) => !loadedIds.current.has(p.id))
     if (next) {
       loadedIds.current.add(next.id)
       setQueue((prev) => [...prev, next])
     }
-  }, [queue.length])
+  }, [queue.length, poemsForLang])
 
   const swipeRight = useCallback(() => {
     if (index < queue.length - 1) {
@@ -170,8 +182,9 @@ export function PoetryProvider({ children }) {
       setExpanded(false)
       return
     }
-    if (queue.length >= allRef.current.length) return
-    const next = allRef.current.find((p) => !loadedIds.current.has(p.id))
+    const deck = poemsForLang(langRef.current)
+    if (queue.length >= deck.length) return
+    const next = deck.find((p) => !loadedIds.current.has(p.id))
     if (next) {
       loadedIds.current.add(next.id)
       setQueue((prev) => [...prev, next])
@@ -179,7 +192,7 @@ export function PoetryProvider({ children }) {
       setExpanded(false)
       recordRead(next)
     }
-  }, [index, queue.length, recordRead])
+  }, [index, queue.length, recordRead, poemsForLang])
 
   const swipeLeft = useCallback(() => {
     if (index > 0) {
@@ -189,15 +202,16 @@ export function PoetryProvider({ children }) {
   }, [index])
 
   const resetQueue = useCallback(() => {
-    const poems = allRef.current
-    if (!poems.length) return
-    const start = Math.min(Math.floor(Math.random() * Math.max(0, poems.length - 3)), poems.length - 3)
-    const fresh = poems.slice(start, start + 3)
-    loadedIds.current = new Set(fresh.map((p) => p.id))
-    setQueue(fresh)
-    setIndex(0)
-    setExpanded(false)
-  }, [])
+    seedQueue()
+  }, [seedQueue])
+
+  const changeLanguage = useCallback((code) => {
+    if (!code || code === langRef.current) return
+    langRef.current = code
+    setLang(code)
+    try { localStorage.setItem('poetry_lang', code) } catch {}
+    seedQueue()
+  }, [seedQueue])
 
   const openFullscreen = useCallback(() => setFullscreen(true), [])
   const closeFullscreen = useCallback(() => setFullscreen(false), [])
@@ -325,6 +339,7 @@ export function PoetryProvider({ children }) {
     canSwipeLeft, canSwipeRight,
     swipeRight, swipeLeft, enqueueNext, setExpanded, resetQueue,
     openFullscreen, closeFullscreen, navigateToPoem,
+    lang, changeLanguage,
     favorites, upsertFavorite, removeFavorite, isFavorite, clearFavorites,
     likedPoems, hasLiked, toggleLikePoem,
     total: allRef.current.length,
@@ -338,6 +353,7 @@ export function PoetryProvider({ children }) {
       canSwipeLeft, canSwipeRight,
       swipeRight, swipeLeft, enqueueNext, setExpanded, resetQueue,
       openFullscreen, closeFullscreen, navigateToPoem,
+      lang, changeLanguage,
       favorites, upsertFavorite, removeFavorite, isFavorite, clearFavorites,
       likedPoems, hasLiked, toggleLikePoem,
       myPoems, addMyPoem, updateMyPoem, deleteMyPoem, isUserPoem,

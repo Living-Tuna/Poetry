@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useTheme } from '../theme/ThemeContext'
 import { themeList } from '../theme/themes'
 import LocationFields from './components/LocationFields'
+import { usePoetry } from './PoetryContext'
 
 const LANGUAGES = [
   { code: 'en', label: 'English' },
@@ -77,6 +78,7 @@ function SettingCard({ icon, title, value, open, onClick, children }) {
 
 export default function Settings({ onNavigate }) {
   const { themeId, setTheme } = useTheme()
+  const { changeLanguage } = usePoetry()
   const savedLang = localStorage.getItem('poetry_lang') || 'en'
   const savedCountry = localStorage.getItem('poetry_country') || ''
   const savedState = localStorage.getItem('poetry_state') || ''
@@ -94,6 +96,7 @@ export default function Settings({ onNavigate }) {
 
   function handleSave() {
     localStorage.setItem('poetry_lang', lang)
+    changeLanguage(lang)
     if (country) localStorage.setItem('poetry_country', country)
     if (state) localStorage.setItem('poetry_state', state)
     if (zip) localStorage.setItem('poetry_zip', zip)
