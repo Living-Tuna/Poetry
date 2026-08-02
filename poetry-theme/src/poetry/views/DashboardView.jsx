@@ -50,7 +50,7 @@ export default function DashboardView({
           <>
             <p className="text-sm" style={{ color: 'var(--tp-text-secondary)' }}>{`Welcome to ${SITE_NAME}`}</p>
             <h2 className="text-2xl font-bold" style={{ color: 'var(--tp-text)', fontFamily: '"Playfair Display", Georgia, serif' }}>Discover & Create</h2>
-            <button onClick={() => { setSlideOpen(true); setAuthMode('login') }}
+            <button onClick={() => { setSlideOpen(true); setAuthMode('signup') }}
               style={{ ...btnWhite, width: 'auto', padding: '0.5rem 1.5rem', marginTop: '0.75rem', display: 'inline-block' }}>
               Sign In to Save
             </button>

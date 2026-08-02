@@ -1,5 +1,14 @@
 const logs = [
   {
+    versionCode: '1.2.7',
+    date: 'August 2026',
+    features: [
+      'Sign-up is now a guided, step-by-step flow — username, name, location, password, and security question each on their own screen',
+      'Your location is detected automatically once and carried straight into sign-up, so you are not asked for it twice',
+      'Auto-detected PINs now always resolve to the right state or region — location is smoother and more accurate',
+    ],
+  },
+  {
     versionCode: '1.2.5',
     date: 'July 2026',
     bugs: [

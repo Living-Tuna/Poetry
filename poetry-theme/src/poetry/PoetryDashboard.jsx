@@ -29,6 +29,8 @@ import LocationModal from './components/LocationModal'
 import { COUNTRIES } from '../constants/languages'
 import { useBook } from './contexts/BookContext'
 import { apiResolveUser } from '../api/messages'
+import { apiAutoDetectLocation } from '../api/location'
+import { supabase } from '../supabase/client'
 
 export default function PoetryDashboard() {
   const { user, login, logout, signup, checkUsername,
@@ -82,7 +84,7 @@ export default function PoetryDashboard() {
   const trendingScroll = useRef(null)
   const mainRef = useRef(null)
 
-  const [authMode, setAuthMode] = useState('login')
+  const [authMode, setAuthMode] = useState('signup')
   const [aUsername, setAUsername] = useState('')
   const [aPassword, setAPassword] = useState('')
   const [aRetype, setARetype] = useState('')
@@ -95,9 +97,9 @@ export default function PoetryDashboard() {
   const [aSuggestions, setASuggestions] = useState([])
   const [aSecurityQ, setASecurityQ] = useState('')
   const [signupStep, setSignupStep] = useState(0)
-  const [aCountry, setACountry] = useState('')
-  const [aState, setAState] = useState('')
-  const [aZip, setAZip] = useState('')
+  const [aCountry, setACountry] = useState(localStorage.getItem('poetry_country') || '')
+  const [aState, setAState] = useState(localStorage.getItem('poetry_state') || '')
+  const [aZip, setAZip] = useState(localStorage.getItem('poetry_zip') || '')
   const location = useLocation()
   const navigate = useNavigate()
 
@@ -130,9 +132,9 @@ export default function PoetryDashboard() {
     setLanguagePickerOpen(false)
   }
 
-  const closeSlide = () => { setSlideOpen(false); setAuthMode('login'); setAError(''); setSignupStep(0) }
+  const closeSlide = () => { setSlideOpen(false); setAuthMode('signup'); setAError(''); setSignupStep(0) }
 
-  function openSignup() { setAuthMode('signup'); setAError(''); setSignupStep(0); setASuggestions([]); setAUsername(''); setAName(''); setAPassword(''); setARetype(''); setAQuestion(''); setAAnswer(''); setACountry(''); setAState(''); setAZip('') }
+  function openSignup() { setAuthMode('signup'); setAError(''); setSignupStep(0); setASuggestions([]); setAUsername(''); setAName(''); setAPassword(''); setARetype(''); setAQuestion(''); setAAnswer(''); setACountry(localStorage.getItem('poetry_country') || ''); setAState(localStorage.getItem('poetry_state') || ''); setAZip(localStorage.getItem('poetry_zip') || '') }
   function openLogin() { setAuthMode('login'); setAError('') }
   function openForgot() { setAuthMode('forgot'); setAError('') }
 
@@ -317,15 +319,29 @@ export default function PoetryDashboard() {
   }
 
   useEffect(() => {
-    if (!user || locationAsked.current) return
-    const country = localStorage.getItem('poetry_country') || user.country || ''
-    const state = localStorage.getItem('poetry_state') || user.state || ''
-    const zip = localStorage.getItem('poetry_zip') || user.zip || ''
-    if (!country || !state || !zip) {
-      locationAsked.current = true
-      setShowLocationModal(true)
-    }
-  }, [user])
+    if (locationAsked.current) return
+    locationAsked.current = true
+    const country = localStorage.getItem('poetry_country') || user?.country || ''
+    const state = localStorage.getItem('poetry_state') || user?.state || ''
+    const zip = localStorage.getItem('poetry_zip') || user?.zip || ''
+    if (country && state && zip) return
+    apiAutoDetectLocation()
+      .then(async (loc) => {
+        const detected = {
+          country: loc.country || country,
+          state: loc.state || state,
+          zip: loc.zip || zip,
+        }
+        if (detected.country) localStorage.setItem('poetry_country', detected.country)
+        if (detected.state) localStorage.setItem('poetry_state', detected.state)
+        if (detected.zip) localStorage.setItem('poetry_zip', detected.zip)
+        if (detected.country && detected.state && detected.zip && user) {
+          try { await supabase.auth.updateUser({ data: detected }) } catch {}
+        }
+      })
+      .catch(() => {})
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   function handleSelectCategory(cat) {
     setSelectedCategory(cat)
@@ -527,7 +543,7 @@ export default function PoetryDashboard() {
           <BlendView
             onNavigate={handleNavigate}
             focusQuery={blendFocus}
-            onOpenAuth={() => { setAuthMode('login'); setSlideOpen(true) }}
+            onOpenAuth={() => { setAuthMode('signup'); setSlideOpen(true) }}
           />
         )}
         {bodyView === 'inbox' && (
@@ -548,7 +564,7 @@ export default function PoetryDashboard() {
           if (user) {
             setShowWriteModal(true); setEditingPoem(null); setWriteTitle(''); setWriteContent(''); setWriteCategories([])
           } else {
-            setAuthMode('login'); setSlideOpen(true)
+            setAuthMode('signup'); setSlideOpen(true)
           }
         }}
           className="fixed bottom-6 right-6 z-30 w-14 h-14 flex items-center justify-center shadow-lg transition-all duration-200 hover:scale-110 active:scale-95"

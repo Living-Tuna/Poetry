@@ -38,7 +38,7 @@ export default function AuthForms({
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold" style={{ fontFamily: '"Playfair Display", Georgia, serif' }}>
           {authMode === 'login' && 'Sign In'}
-          {authMode === 'signup' && ['Choose Username','Set Your Name','Set Password','Security Question'][signupStep]}
+          {authMode === 'signup' && ['Choose Username','Set Your Name','Set Location','Set Password','Security Question'][signupStep]}
           {authMode === 'forgot' && 'Forgot Password'}
           {authMode === 'forgot_reset' && 'Reset Password'}
         </h2>
@@ -77,7 +77,7 @@ export default function AuthForms({
       {authMode === 'signup' && (
         <div className="space-y-3">
           <div className="flex gap-1.5 mb-2">
-            {['Username','Name','Password','Security'].map((label, i) => (
+            {['Username','Name','Location','Password','Security'].map((label, i) => (
               <div key={i} className="flex-1 h-1 rounded-full" style={{
                 backgroundColor: i <= signupStep ? 'var(--tp-header-text)' : 'rgba(255,255,255,0.2)',
                 transition: 'background-color 0.3s',
@@ -115,17 +115,14 @@ export default function AuthForms({
               <input value={aName} onChange={(e) => setAName(e.target.value)}
                 placeholder="What should we call you?" style={inputStyle}
                 onFocus={inputFocus} onBlur={inputBlur} autoFocus />
-              <LocationFields
-                country={aCountry} setCountry={setACountry}
-                state={aState} setState={setAState}
-                zip={aZip} setZip={setAZip}
-                inputStyle={inputStyle} onInputFocus={inputFocus} onInputBlur={inputBlur}
-              />
               {aError && <p className="text-xs text-center" style={{ color: '#fbbf24' }}>{aError}</p>}
               <div className="flex gap-2">
                 <button type="button" onClick={() => { setSignupStep(0); setAError('') }}
                   style={{ ...btnWhite, flex: 1, opacity: 0.7 }}>Back</button>
-                <button type="button" disabled={!aName.trim()} onClick={() => { if (aName.trim()) setSignupStep(2) }} style={{ ...btnWhite, flex: 1 }}
+                <button type="button" disabled={!aName.trim()} onClick={() => {
+                  if (!aName.trim()) return
+                  setSignupStep((aCountry.trim() && aState.trim() && aZip.trim()) ? 3 : 2)
+                }} style={{ ...btnWhite, flex: 1 }}
                   onMouseEnter={(e) => e.target.style.opacity = '0.85'}
                   onMouseLeave={(e) => e.target.style.opacity = '1'}>Next</button>
               </div>
@@ -133,6 +130,31 @@ export default function AuthForms({
           )}
 
           {signupStep === 2 && (
+            <div className="space-y-3">
+              <LocationFields
+                country={aCountry} setCountry={setACountry}
+                state={aState} setState={setAState}
+                zip={aZip} setZip={setAZip}
+                inputStyle={inputStyle} onInputFocus={inputFocus} onInputBlur={inputBlur}
+              />
+              {aError && <p className="text-xs text-center" style={{ color: '#fbbf24' }}>{aError}</p>}
+              {(!aCountry.trim() || !aState.trim() || !aZip.trim()) && (
+                <p className="text-xs" style={{ color: 'rgba(255,255,255,0.6)' }}>
+                  Your location is required — it auto-detects, or pick your country and enter your ZIP / PIN code.
+                </p>
+              )}
+              <div className="flex gap-2">
+                <button type="button" onClick={() => { setSignupStep(1); setAError('') }}
+                  style={{ ...btnWhite, flex: 1, opacity: 0.7 }}>Back</button>
+                <button type="button" disabled={!aCountry.trim() || !aState.trim() || !aZip.trim()}
+                  onClick={() => { if (aCountry.trim() && aState.trim() && aZip.trim()) setSignupStep(3) }} style={{ ...btnWhite, flex: 1 }}
+                  onMouseEnter={(e) => e.target.style.opacity = '0.85'}
+                  onMouseLeave={(e) => e.target.style.opacity = '1'}>Next</button>
+              </div>
+            </div>
+          )}
+
+          {signupStep === 3 && (
             <div className="space-y-3">
               <input type="password" value={aPassword} onChange={(e) => { setAPassword(e.target.value); setAError('') }}
                 placeholder="Password (min 6 chars)" style={inputStyle}
@@ -142,12 +164,12 @@ export default function AuthForms({
                 onFocus={inputFocus} onBlur={inputBlur} />
               {aError && <p className="text-xs text-center" style={{ color: '#fbbf24' }}>{aError}</p>}
               <div className="flex gap-2">
-                <button type="button" onClick={() => { setSignupStep(1); setAError('') }}
+                <button type="button" onClick={() => { setSignupStep(2); setAError('') }}
                   style={{ ...btnWhite, flex: 1, opacity: 0.7 }}>Back</button>
                 <button type="button" disabled={!aPassword || !aRetype} onClick={() => {
                   if (aPassword.length < 6) { setAError('Password must be at least 6 characters'); return }
                   if (aPassword !== aRetype) { setAError('Passwords do not match'); return }
-                  setSignupStep(3)
+                  setSignupStep(4)
                 }} style={{ ...btnWhite, flex: 1 }}
                   onMouseEnter={(e) => e.target.style.opacity = '0.85'}
                   onMouseLeave={(e) => e.target.style.opacity = '1'}>Next</button>
@@ -155,7 +177,7 @@ export default function AuthForms({
             </div>
           )}
 
-          {signupStep === 3 && (
+          {signupStep === 4 && (
             <div className="space-y-3">
               <input value={aQuestion} onChange={(e) => { setAQuestion(e.target.value); setAError('') }}
                 placeholder="Security question (for password reset)" style={inputStyle}
@@ -170,7 +192,7 @@ export default function AuthForms({
                 {aBusy ? 'Creating...' : 'Create Account'}
               </button>
               <div className="flex gap-2">
-                <button type="button" onClick={() => { setSignupStep(2); setAError('') }}
+                <button type="button" onClick={() => { setSignupStep(3); setAError('') }}
                   style={{ ...btnWhite, flex: 1, opacity: 0.7 }}>Back</button>
                 <div style={{ flex: 1 }} />
               </div>
