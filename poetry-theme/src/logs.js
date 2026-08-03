@@ -1,5 +1,13 @@
 const logs = [
   {
+    versionCode: '1.3.3',
+    date: 'August 2026',
+    features: [
+      'The historic library grew from about 190 classics to thousands — the full public-domain collection from PoetryDB is now included, so there is far more to read and share',
+      'The reader now loads the entire library, no matter how large it gets',
+    ],
+  },
+  {
     versionCode: '1.3.2',
     date: 'August 2026',
     features: [

@@ -2,13 +2,22 @@ import { supabase } from '../supabase/client'
 
 export async function apiFetchAllPoems() {
   console.log('[API] fetchAllPoems')
-  const { data, error } = await supabase
-    .from('poems')
-    .select('*')
-    .order('likes', { ascending: false })
-  if (error) { console.log('[API] fetchAllPoems error:', error); throw error }
-  console.log('[API] fetchAllPoems result count:', data?.length ?? 0)
-  return data || []
+  const PAGE = 1000
+  const all = []
+  let from = 0
+  for (;;) {
+    const { data, error } = await supabase
+      .from('poems')
+      .select('*')
+      .order('likes', { ascending: false })
+      .range(from, from + PAGE - 1)
+    if (error) { console.log('[API] fetchAllPoems error:', error); throw error }
+    all.push(...(data || []))
+    if (!data || data.length < PAGE) break
+    from += PAGE
+  }
+  console.log('[API] fetchAllPoems result count:', all.length)
+  return all
 }
 
 export async function apiAddPoem(poem, userId, username) {
