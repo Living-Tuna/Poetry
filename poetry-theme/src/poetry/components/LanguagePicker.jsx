@@ -1,6 +1,8 @@
 import { COUNTRIES, getLanguagesForCountry } from '../../constants/languages'
+import { useLanguage } from '../../language/LanguageProvider'
 
 export default function LanguagePicker({ open, lang, onSelect, onClose }) {
+  const { t } = useLanguage()
   if (!open) return null
   const savedCountry = localStorage.getItem('poetry_country') || ''
   const countryEntry = Object.entries(COUNTRIES).find(([, v]) => v.name === savedCountry)
@@ -19,7 +21,7 @@ export default function LanguagePicker({ open, lang, onSelect, onClose }) {
           overflowY: 'auto',
         }}>
         <p className="text-xs font-semibold mb-2 px-1" style={{ color: 'var(--tp-text-secondary)' }}>
-          {COUNTRIES[countryCode]?.name || 'Languages'}
+          {COUNTRIES[countryCode]?.name || t('language.title')}
         </p>
         <div className="space-y-0.5">
           {languages.map((l) => (
@@ -42,7 +44,7 @@ export default function LanguagePicker({ open, lang, onSelect, onClose }) {
           ))}
           {languages.length === 0 && (
             <p className="text-xs px-3 py-2" style={{ color: 'var(--tp-text-secondary)' }}>
-              No languages available. Set your country in Settings.
+              {t('language.empty')}
             </p>
           )}
         </div>

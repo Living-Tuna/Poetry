@@ -5,11 +5,9 @@ import LocationFields from './components/LocationFields'
 import { usePoetry } from './PoetryContext'
 import { supabase } from '../supabase/client'
 import { useAuth } from '../auth/AuthContext'
-
-const LANGUAGES = [
-  { code: 'en', label: 'English' },
-  { code: 'ml', label: 'മലയാളം (Malayalam)' },
-]
+import { LANGUAGE_CODES } from '../constants/languagecode'
+import { getLanguageName } from '../constants/languages'
+import { useLanguage } from '../language/LanguageProvider'
 
 function GlobeIcon({ size = 18 }) {
   return (
@@ -79,6 +77,7 @@ function SettingCard({ icon, title, value, open, onClick, children }) {
 }
 
 export default function Settings({ onNavigate }) {
+  const { t } = useLanguage()
   const { user } = useAuth()
   const { themeId, setTheme } = useTheme()
   const { changeLanguage } = usePoetry()
@@ -122,13 +121,13 @@ export default function Settings({ onNavigate }) {
       <div className="flex items-center gap-3 mb-6">
         <button onClick={() => onNavigate('dashboard')}
           className="p-1.5 rounded-xl transition-opacity hover:opacity-70"
-          style={{ color: 'var(--tp-text-secondary)' }} aria-label="Back">
+          style={{ color: 'var(--tp-text-secondary)' }} aria-label={t('common.back')}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
             <path d="M19 12H5M12 19l-7-7 7-7" />
           </svg>
         </button>
         <h2 className="text-xl font-bold" style={{ color: 'var(--tp-text)', fontFamily: '"Playfair Display", Georgia, serif' }}>
-          Settings
+          {t('settings.title')}
         </h2>
       </div>
 
@@ -136,20 +135,20 @@ export default function Settings({ onNavigate }) {
         {/* Language */}
         <SettingCard
           icon={<GlobeIcon />}
-          title="Language"
-          value={LANGUAGES.find((l) => l.code === lang)?.label || lang}
+          title={t('settings.language')}
+          value={getLanguageName(lang) || lang}
           open={openCard === 'lang'}
           onClick={() => toggleCard('lang')}>
           <div className="space-y-1">
-            {LANGUAGES.map((l) => (
-              <button key={l.code} onClick={() => { setLang(l.code); setOpenCard(null) }}
+            {LANGUAGE_CODES.map((code) => (
+              <button key={code} onClick={() => { setLang(code); setOpenCard(null) }}
                 className="w-full text-left px-3 py-2.5 rounded-xl text-sm font-medium transition-all"
                 style={{
-                  backgroundColor: lang === l.code ? 'var(--tp-secondary)' : 'var(--tp-bg)',
-                  color: lang === l.code ? '#fff' : 'var(--tp-text)',
-                  border: `1.5px solid ${lang === l.code ? 'var(--tp-secondary)' : 'var(--tp-border)'}`,
+                  backgroundColor: lang === code ? 'var(--tp-secondary)' : 'var(--tp-bg)',
+                  color: lang === code ? '#fff' : 'var(--tp-text)',
+                  border: `1.5px solid ${lang === code ? 'var(--tp-secondary)' : 'var(--tp-border)'}`,
                 }}>
-                {l.label}
+                {getLanguageName(code)}
               </button>
             ))}
           </div>
@@ -158,8 +157,8 @@ export default function Settings({ onNavigate }) {
         {/* Theme */}
         <SettingCard
           icon={<PaletteIcon />}
-          title="Theme"
-          value={currentTheme ? `${currentTheme.emoji}  ${currentTheme.label}` : 'Default'}
+          title={t('settings.theme')}
+          value={currentTheme ? `${currentTheme.emoji}  ${currentTheme.label}` : t('common.default')}
           open={openCard === 'theme'}
           onClick={() => toggleCard('theme')}>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -189,8 +188,8 @@ export default function Settings({ onNavigate }) {
         {/* Location */}
         <SettingCard
           icon={<PinIcon />}
-          title="Location"
-          value={[country, state].filter(Boolean).join(' · ') || 'Not set'}
+          title={t('settings.location')}
+          value={[country, state].filter(Boolean).join(' · ') || t('settings.notSet')}
           open={openCard === 'location'}
           onClick={() => toggleCard('location')}>
           <LocationFields
@@ -205,7 +204,7 @@ export default function Settings({ onNavigate }) {
       <button onClick={handleSave}
         className="w-full mt-5 py-2.5 text-sm font-semibold text-white transition-all duration-200 hover:brightness-110 active:scale-[0.98]"
         style={{ backgroundColor: 'var(--tp-secondary)', borderRadius: 'var(--tp-btn-radius, 0.75rem)' }}>
-        Save
+        {t('settings.save')}
       </button>
     </div>
   )

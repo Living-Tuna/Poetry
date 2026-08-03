@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import logs from '../../logs'
+import { useLanguage } from '../../language/LanguageProvider'
 
 function BugIcon() {
   return (
@@ -26,6 +27,7 @@ function CheckIcon() {
 }
 
 export default function ChangelogView({ onNavigate }) {
+  const { t } = useLanguage()
   const [expanded, setExpanded] = useState({})
 
   function toggle(v) {
@@ -37,13 +39,13 @@ export default function ChangelogView({ onNavigate }) {
       <div className="flex items-center gap-3 mb-6">
         <button onClick={() => onNavigate('dashboard')}
           className="p-1.5 rounded-xl transition-opacity hover:opacity-70"
-          style={{ color: 'var(--tp-text-secondary)' }} aria-label="Back">
+          style={{ color: 'var(--tp-text-secondary)' }} aria-label={t('common.back')}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
             <path d="M19 12H5M12 19l-7-7 7-7" />
           </svg>
         </button>
         <h2 className="text-xl font-bold" style={{ color: 'var(--tp-text)', fontFamily: '"Playfair Display", Georgia, serif' }}>
-          Changelog
+          {t('changelog.title')}
         </h2>
       </div>
 
@@ -83,7 +85,7 @@ export default function ChangelogView({ onNavigate }) {
                     <div className="mt-2 space-y-2.5 pb-2 animate-fade-in">
                       {features.length > 0 && (
                         <div className="space-y-1">
-                          <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#22c55e' }}>Features</p>
+                          <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#22c55e' }}>{t('changelog.features')}</p>
                           {features.map((feat, fi) => (
                             <div key={fi} className="flex items-start gap-1.5">
                               <CheckIcon />
@@ -94,7 +96,7 @@ export default function ChangelogView({ onNavigate }) {
                       )}
                       {bugs.length > 0 && (
                         <div className="space-y-1">
-                          <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#ef4444' }}>Bug Fixes</p>
+                          <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#ef4444' }}>{t('changelog.bugFixes')}</p>
                           {bugs.map((bug, bi) => (
                             <div key={bi} className="flex items-start gap-1.5">
                               <BugIcon />

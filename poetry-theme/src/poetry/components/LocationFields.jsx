@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { COUNTRIES } from '../../constants/languages'
 import { apiFetchStateFromZip, apiAutoDetectLocation } from '../../api/location'
+import { useLanguage } from '../../language/LanguageProvider'
 
 const countryNames = Object.values(COUNTRIES)
   .map((c) => c.name)
@@ -22,6 +23,7 @@ function CheckIcon({ size = 14 }) {
 }
 
 export default function LocationFields({ country, setCountry, state, setState, zip, setZip, inputStyle, onInputFocus, onInputBlur, autoDetect = true }) {
+  const { t } = useLanguage()
   const style = inputStyle || defaultStyle
   const [stateLoading, setStateLoading] = useState(false)
   const [autoState, setAutoState] = useState(false)
@@ -124,22 +126,22 @@ export default function LocationFields({ country, setCountry, state, setState, z
     <>
       <div>
         <input value={zip} onChange={(e) => handleZipChange(e.target.value)}
-          placeholder="ZIP / PIN code" style={style}
+          placeholder={t('location.zipPlaceholder')} style={style}
           onFocus={onInputFocus} onBlur={onInputBlur} />
         {stateLoading && (
           <p className="text-[11px] mt-1 opacity-70 flex items-center gap-1.5">
             <span className="w-3 h-3 rounded-full border-2 border-transparent animate-spin inline-block"
               style={{ borderTopColor: 'currentColor' }} />
-            Detecting state from PIN code...
+            {t('location.detectingState')}
           </p>
         )}
       </div>
 
       {!stateLoading && fetchFailed && (
         <div>
-          <p className="text-[11px] mb-1 opacity-70">Auto-detect failed for this code — enter your state manually.</p>
+          <p className="text-[11px] mb-1 opacity-70">{t('location.detectFailed')}</p>
           <input value={state} onChange={(e) => setState(e.target.value)}
-            placeholder="State / Region" style={style}
+            placeholder={t('location.statePlaceholder')} style={style}
             onFocus={onInputFocus} onBlur={onInputBlur} />
         </div>
       )}
@@ -147,11 +149,11 @@ export default function LocationFields({ country, setCountry, state, setState, z
       {!stateLoading && !fetchFailed && state && manual && (
         <div className="flex items-center justify-between gap-2 rounded-xl px-3 py-2.5"
           style={{ backgroundColor: 'color-mix(in srgb, var(--tp-secondary) 10%, transparent)', border: '1px solid var(--tp-border)' }}>
-          <span className="text-xs font-medium" style={{ color: 'var(--tp-text-secondary)' }}>State / Region</span>
+          <span className="text-xs font-medium" style={{ color: 'var(--tp-text-secondary)' }}>{t('location.statePlaceholder')}</span>
           <span className="text-xs font-semibold flex items-center gap-1" style={{ color: 'var(--tp-secondary)' }}>
             <CheckIcon />
             {state}
-            {autoState && <span className="text-[10px] font-normal opacity-70">· auto-detected</span>}
+            {autoState && <span className="text-[10px] font-normal opacity-70">{t('location.autoDetected')}</span>}
           </span>
         </div>
       )}
@@ -164,7 +166,7 @@ export default function LocationFields({ country, setCountry, state, setState, z
         <p className="text-[11px] opacity-70 flex items-center gap-1.5">
           <span className="w-3 h-3 rounded-full border-2 border-transparent animate-spin inline-block"
             style={{ borderTopColor: 'currentColor' }} />
-          Detecting your location...
+          {t('location.detecting')}
         </p>
       )}
 
@@ -174,15 +176,15 @@ export default function LocationFields({ country, setCountry, state, setState, z
             style={{ backgroundColor: 'color-mix(in srgb, var(--tp-secondary) 10%, transparent)', border: '1px solid var(--tp-border)' }}>
             <p className="text-[11px] flex items-center gap-1 mb-1" style={{ color: 'var(--tp-secondary)' }}>
               <CheckIcon size={12} />
-              Location detected automatically
+              {t('location.detectedHeading')}
             </p>
             <div className="flex items-center justify-between gap-2">
               <span className="text-sm font-semibold" style={{ color: 'var(--tp-text)' }}>
-                {[country, state, zip].filter(Boolean).join(', ') || 'Auto-detected'}
+                {[country, state, zip].filter(Boolean).join(', ') || t('location.autoDetectedValue')}
               </span>
               <button type="button" onClick={() => setManual(true)}
                 style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.75rem', color: 'var(--tp-secondary)', fontWeight: 600 }}>
-                Change
+                {t('common.change')}
               </button>
             </div>
           </div>
@@ -194,19 +196,19 @@ export default function LocationFields({ country, setCountry, state, setState, z
         <button type="button" onClick={runDetect} disabled={autoBusy}
           className="w-full py-2.5 rounded-xl text-xs font-semibold transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-60"
           style={{ color: 'var(--tp-secondary)', backgroundColor: 'color-mix(in srgb, var(--tp-secondary) 12%, transparent)' }}>
-          {autoBusy ? 'Detecting…' : 'Detect automatically'}
+          {autoBusy ? t('location.detectingEllipsis') : t('location.detectButton')}
         </button>
       )}
 
       {showSelector && (
         <>
           {autoFailed && (
-            <p className="text-[11px] opacity-70">Couldn't access your location — enter your country and state manually.</p>
+            <p className="text-[11px] opacity-70">{t('location.accessDenied')}</p>
           )}
 
           <select value={country} onChange={(e) => handleCountryChange(e.target.value)}
             style={{ ...style, appearance: 'auto' }}>
-            <option value="">Select country</option>
+            <option value="">{t('location.selectCountryPlaceholder')}</option>
             {countryNames.map((c) => <option key={c} value={c}>{c}</option>)}
           </select>
 

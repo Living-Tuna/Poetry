@@ -32,8 +32,10 @@ import { contactLabel, contactRevealed } from './components/PeerRequestCard'
 import { apiResolveUser } from '../api/messages'
 import { apiAutoDetectLocation } from '../api/location'
 import { supabase } from '../supabase/client'
+import { useLanguage } from '../language/LanguageProvider'
 
 export default function PoetryDashboard() {
+  const { t } = useLanguage()
   const { user, login, logout, signup, checkUsername,
           getUserSecurityQuestion, resetPassword } = useAuth()
   const {
@@ -148,7 +150,7 @@ export default function PoetryDashboard() {
   async function handleLogin(e) {
     e?.preventDefault()
     setAError('')
-    if (!aUsername.trim() || !aPassword) { setAError('Fill all fields'); return }
+    if (!aUsername.trim() || !aPassword) { setAError(t('auth.fillAllFields')); return }
     setABusy(true)
     const res = await login(aUsername.trim(), aPassword)
     setABusy(false)
@@ -159,19 +161,19 @@ export default function PoetryDashboard() {
   async function handleSignupNext0() {
     setAError('')
     const u = aUsername.trim().toLowerCase()
-    if (!u || u.length < 3) { setAError('Username must be at least 3 characters'); return }
+    if (!u || u.length < 3) { setAError(t('auth.usernameMin3')); return }
     setABusy(true)
     const res = await checkUsername(u)
     setABusy(false)
-    if (res.available === null) { setAError('Could not check username — please try again.'); return }
-    if (!res.available) { setAError('Username taken — try one below'); setASuggestions(res.suggestions ?? []); return }
+    if (res.available === null) { setAError(t('auth.usernameCheckFail')); return }
+    if (!res.available) { setAError(t('auth.usernameTaken')); setASuggestions(res.suggestions ?? []); return }
     setASuggestions([])
     setSignupStep(1)
   }
 
   async function handleSignup() {
     setAError('')
-    if (!aQuestion.trim() || !aAnswer.trim()) { setAError('Fill security question and answer'); return }
+    if (!aQuestion.trim() || !aAnswer.trim()) { setAError(t('auth.fillSecurityQA')); return }
     const u = aUsername.trim().toLowerCase()
     setABusy(true)
     const res = await signup(u, aPassword, aName.trim(), aQuestion.trim(), aAnswer.trim(), aCountry, aState, aZip)
@@ -181,18 +183,18 @@ export default function PoetryDashboard() {
       if (aCountry) localStorage.setItem('poetry_country', aCountry)
       if (aState) localStorage.setItem('poetry_state', aState)
       if (aZip) localStorage.setItem('poetry_zip', aZip)
-      setAuthMode('login'); setAError('Account created! Sign in below.'); setAPassword(''); setAAnswer('')
+      setAuthMode('login'); setAError(t('auth.accountCreated')); setAPassword(''); setAAnswer('')
     }
   }
 
   async function handleForgotLookup(e) {
     e?.preventDefault()
     setAError('')
-    if (!aUsername.trim()) { setAError('Enter your username'); return }
+    if (!aUsername.trim()) { setAError(t('auth.enterUsernameErr')); return }
     setABusy(true)
     const res = await getUserSecurityQuestion(aUsername.trim())
     setABusy(false)
-    if (res.error || !res.question) { setAError(res.error || 'Username not found'); return }
+    if (res.error || !res.question) { setAError(res.error || t('auth.usernameNotFound')); return }
     setASecurityQ(res.question)
     setAuthMode('forgot_reset')
   }
@@ -200,18 +202,18 @@ export default function PoetryDashboard() {
   async function handleForgotReset(e) {
     e?.preventDefault()
     setAError('')
-    if (!aAnswer.trim()) { setAError('Answer the security question'); return }
-    if (!aNewPass || aNewPass.length < 6) { setAError('Password must be at least 6 characters'); return }
+    if (!aAnswer.trim()) { setAError(t('auth.answerTheSecurityQuestion')); return }
+    if (!aNewPass || aNewPass.length < 6) { setAError(t('auth.passwordMin6')); return }
     setABusy(true)
     const res = await resetPassword(aUsername.trim(), aAnswer.trim(), aNewPass)
     setABusy(false)
     if (!res.ok) {
       if (res.error === 'PASSWORD_RESET_NEEDS_BACKEND') {
-        setAError('Password reset requires Edge Functions to be deployed. Use Supabase Dashboard for now.')
+        setAError(t('auth.resetNeedsBackend'))
       } else {
         setAError(res.error)
       }
-    } else { setAuthMode('login'); setAError('Password reset. Sign in with your new password.'); setAPassword('') }
+    } else { setAuthMode('login'); setAError(t('auth.resetSuccess')); setAPassword('') }
   }
 
   useEffect(() => {
@@ -237,7 +239,7 @@ export default function PoetryDashboard() {
         categories: writeCategories,
         language: lang,
         createdAt: new Date().toLocaleDateString(),
-        author: user?.name || 'Unknown',
+        author: user?.name || t('common.unknown'),
       })
     }
     setWriteTitle('')
@@ -299,14 +301,14 @@ export default function PoetryDashboard() {
     const incoming = fresh.find((m) => m.from !== user?.username && m.from && !m.read)
     if (!incoming) return
     const kind = incoming.kind || 'chat'
-    const label = kind === 'request' ? 'New book request'
-      : kind === 'share_yes' ? 'Book shared'
-        : kind === 'share_no' ? 'Share declined'
-          : kind === 'received_yes' ? 'Book received'
-            : 'New message'
+    const label = kind === 'request' ? t('notice.newBookRequest')
+      : kind === 'share_yes' ? t('notice.bookShared')
+        : kind === 'share_no' ? t('notice.shareDeclined')
+          : kind === 'received_yes' ? t('notice.bookReceived')
+            : t('notice.newMessage')
     const sender = contactLabel(inbox, user?.username || '', incoming.from)
     setNotice({
-      text: `${label} from ${sender}${incoming.bookTitle ? ` · ${incoming.bookTitle}` : ''}`,
+      text: t('notice.fromSender', { label, sender }) + (incoming.bookTitle ? ` · ${incoming.bookTitle}` : ''),
       action: () => { setChatContact(incoming.from); handleNavigate('inbox') },
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -476,7 +478,7 @@ export default function PoetryDashboard() {
         favoritesCount={favorites.length}
         categoryCount={uniqueCategories.length}
         user={user}
-        inboxLatest={inbox[0] ? `Re: ${inbox[0].bookTitle}` : 'latest messages'}
+        inboxLatest={inbox[0] ? t('inbox.re', { title: inbox[0].bookTitle }) : t('nav.latestMessages')}
         unreadCount={inboxUnread}
         shelfCount={shelf.length}
         onChangelog={() => { setMenuOpen(false); handleNavigate('changelog') }}
@@ -596,22 +598,22 @@ export default function PoetryDashboard() {
             onClick={() => handleNavigate('dashboard')}
             className="flex-1 flex flex-col items-center gap-0.5 pt-1 transition-all active:scale-90"
             style={{ color: 'var(--tp-primary)' }}
-            aria-label="Home">
+            aria-label={t('nav.home')}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" />
             </svg>
-            <span className="text-[10px] font-medium">Home</span>
+            <span className="text-[10px] font-medium">{t('nav.home')}</span>
           </button>
 
           <button
             onClick={() => { handleNavigate('dashboard'); resetQueue(); openFullscreen() }}
             className="flex-1 flex flex-col items-center gap-0.5 pt-1 transition-all active:scale-90"
             style={{ color: 'var(--tp-primary)' }}
-            aria-label="Read">
+            aria-label={t('nav.read')}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" /><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
             </svg>
-            <span className="text-[10px] font-medium">Read</span>
+            <span className="text-[10px] font-medium">{t('nav.read')}</span>
           </button>
 
           <button
@@ -624,7 +626,7 @@ export default function PoetryDashboard() {
             }}
             className="-mt-5 w-14 h-14 flex-shrink-0 flex items-center justify-center rounded-full shadow-lg transition-all duration-200 hover:scale-110 active:scale-90"
             style={{ backgroundColor: 'var(--tp-primary)', color: 'var(--tp-secondary)', border: '4px solid var(--tp-secondary)' }}
-            aria-label="Write a poem">
+            aria-label={t('nav.writeAPoem')}>
             <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
               <path d="M12 5v14M5 12h14" />
             </svg>
@@ -634,22 +636,22 @@ export default function PoetryDashboard() {
             onClick={() => handleNavigate('favorites')}
             className="flex-1 flex flex-col items-center gap-0.5 pt-1 transition-all active:scale-90"
             style={{ color: 'var(--tp-primary)' }}
-            aria-label="Favourites">
+            aria-label={t('nav.favorites')}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
             </svg>
-            <span className="text-[10px] font-medium">Favourites</span>
+            <span className="text-[10px] font-medium">{t('nav.favorites')}</span>
           </button>
 
           <button
             onClick={() => handleNavigate('blend')}
             className="flex-1 flex flex-col items-center gap-0.5 pt-1 transition-all active:scale-90"
             style={{ color: 'var(--tp-primary)' }}
-            aria-label="Blend">
+            aria-label={t('nav.blend')}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M17 1l4 4-4 4" /><path d="M3 11V9a4 4 0 0 1 4-4h14" /><path d="M7 23l-4-4 4-4" /><path d="M21 13v2a4 4 0 0 1-4 4H3" />
             </svg>
-            <span className="text-[10px] font-medium">Blend</span>
+            <span className="text-[10px] font-medium">{t('nav.blend')}</span>
           </button>
         </nav>
       ) : (
@@ -663,7 +665,7 @@ export default function PoetryDashboard() {
           }}
             className="fixed bottom-6 right-6 z-30 w-14 h-14 flex items-center justify-center shadow-lg transition-all duration-200 hover:scale-110 active:scale-95"
             style={{ backgroundColor: 'var(--tp-secondary)', color: 'white', borderRadius: 'var(--tp-btn-radius, 9999px)' }}
-            aria-label="Write a poem">
+            aria-label={t('nav.writeAPoem')}>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
               <path d="M12 5v14M5 12h14" />
             </svg>

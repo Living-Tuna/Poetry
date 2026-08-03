@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { apiFetchPersonProfile } from '../../api/profile'
 import { COUNTRIES } from '../../constants/languages'
+import { useLanguage } from '../../language/LanguageProvider'
 
 function countryName(code) {
   return COUNTRIES[code]?.name || code || ''
@@ -27,6 +28,7 @@ function Section({ title, children, empty }) {
 }
 
 export default function PersonProfile({ username, onClose }) {
+  const { t } = useLanguage()
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -38,10 +40,10 @@ export default function PersonProfile({ username, onClose }) {
     setError('')
     apiFetchPersonProfile(username)
       .then((res) => { if (alive) setData(res) })
-      .catch(() => { if (alive) setError('Could not load this profile — try again.') })
+      .catch(() => { if (alive) setError(t('profile.couldNotLoad')) })
       .finally(() => { if (alive) setLoading(false) })
     return () => { alive = false }
-  }, [username, reloadKey])
+  }, [username, reloadKey, t])
 
   const p = data?.profile
   const stats = data?.stats
@@ -67,8 +69,8 @@ export default function PersonProfile({ username, onClose }) {
         }}>
         <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-3"
           style={{ backgroundColor: 'var(--tp-bg)', borderBottom: '1px solid var(--tp-border)' }}>
-          <h2 className="text-lg font-bold" style={{ fontFamily: '"Playfair Display", Georgia, serif' }}>Profile</h2>
-          <button onClick={onClose} className="p-1.5 rounded-xl transition-opacity hover:opacity-70" aria-label="Close">
+          <h2 className="text-lg font-bold" style={{ fontFamily: '"Playfair Display", Georgia, serif' }}>{t('profile.title')}</h2>
+          <button onClick={onClose} className="p-1.5 rounded-xl transition-opacity hover:opacity-70" aria-label={t('common.close')}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
           </button>
         </div>
@@ -77,7 +79,7 @@ export default function PersonProfile({ username, onClose }) {
           {loading && (
             <div className="flex items-center justify-center gap-2 py-10">
               <span className="w-5 h-5 rounded-full border-2 border-transparent animate-spin inline-block" style={{ borderTopColor: 'var(--tp-secondary)' }} />
-              <span className="text-xs" style={{ color: 'var(--tp-text-secondary)' }}>Loading profile...</span>
+              <span className="text-xs" style={{ color: 'var(--tp-text-secondary)' }}>{t('profile.loading')}</span>
             </div>
           )}
 
@@ -86,16 +88,16 @@ export default function PersonProfile({ username, onClose }) {
               <p className="text-sm" style={{ color: 'var(--tp-text-secondary)' }}>{error}</p>
               <button onClick={() => setReloadKey((k) => k + 1)}
                 className="mt-4 px-4 py-1.5 rounded-xl text-xs font-medium transition-all hover:opacity-80"
-                style={{ backgroundColor: 'var(--tp-secondary)', color: '#fff' }}>Retry</button>
+                style={{ backgroundColor: 'var(--tp-secondary)', color: '#fff' }}>{t('common.retry')}</button>
             </div>
           )}
 
           {!error && !loading && data === null && (
             <div className="rounded-xl p-8 text-center" style={{ backgroundColor: 'var(--tp-surface)', border: '1.5px dashed var(--tp-border)' }}>
-              <p className="text-sm" style={{ color: 'var(--tp-text-secondary)' }}>No reader found for "@{username}".</p>
+              <p className="text-sm" style={{ color: 'var(--tp-text-secondary)' }}>{t('profile.noReader', { username })}</p>
               <button onClick={() => setReloadKey((k) => k + 1)}
                 className="mt-4 px-4 py-1.5 rounded-xl text-xs font-medium transition-all hover:opacity-80"
-                style={{ backgroundColor: 'var(--tp-secondary)', color: '#fff' }}>Retry</button>
+                style={{ backgroundColor: 'var(--tp-secondary)', color: '#fff' }}>{t('common.retry')}</button>
             </div>
           )}
 
@@ -120,17 +122,17 @@ export default function PersonProfile({ username, onClose }) {
                 <div className="flex items-center gap-2" style={{ color: '#f97316' }}>
                   <FlameIcon size={22} />
                   <div>
-                    <p className="text-lg font-bold leading-tight">{streakCurrent} day{streakCurrent === 1 ? '' : 's'}</p>
-                    <p className="text-[10px] opacity-70">reading streak</p>
+                    <p className="text-lg font-bold leading-tight">{t(streakCurrent === 1 ? 'profile.streakDay' : 'profile.streakDays', { count: streakCurrent })}</p>
+                    <p className="text-[10px] opacity-70">{t('profile.readingStreak')}</p>
                   </div>
                 </div>
                 <div className="text-right">
                   <p className="text-sm font-bold" style={{ color: 'var(--tp-text)' }}>{streakBest}</p>
-                  <p className="text-[10px]" style={{ color: 'var(--tp-text-secondary)' }}>best streak</p>
+                  <p className="text-[10px]" style={{ color: 'var(--tp-text-secondary)' }}>{t('profile.bestStreak')}</p>
                 </div>
               </div>
 
-              <Section title="Favorite Lines" empty={favorites.length === 0 ? 'No favorite lines shared yet.' : ''}>
+              <Section title={t('profile.favoriteLines')} empty={favorites.length === 0 ? t('profile.noFavoritesShared') : ''}>
                 <div className="space-y-2">
                   {favorites.slice(0, 5).map((f) => (
                     <div key={f.key} className="rounded-xl p-3" style={{ backgroundColor: 'var(--tp-surface)', border: '1.5px solid var(--tp-border)' }}>
@@ -138,14 +140,14 @@ export default function PersonProfile({ username, onClose }) {
                         "{f.lineText}"
                       </p>
                       {f.poemTitle && (
-                        <p className="text-[10px] mt-1.5" style={{ color: 'var(--tp-text-secondary)' }}>— {f.poemTitle}{f.author ? ` by ${f.author}` : ''}</p>
+                        <p className="text-[10px] mt-1.5" style={{ color: 'var(--tp-text-secondary)' }}>— {f.poemTitle}{f.author ? ` ${t('common.byAuthor', { author: f.author })}` : ''}</p>
                       )}
                     </div>
                   ))}
                 </div>
               </Section>
 
-              <Section title={`Bookshelf (${shelf.length})`} empty={shelf.length === 0 ? 'No books on the shelf yet.' : ''}>
+              <Section title={t('profile.bookshelfCount', { count: shelf.length })} empty={shelf.length === 0 ? t('profile.noBooks') : ''}>
                 <div className="space-y-2">
                   {shelf.map((b, i) => (
                     <div key={i} className="rounded-xl p-3 flex items-start justify-between gap-3" style={{ backgroundColor: 'var(--tp-surface)', border: '1.5px solid var(--tp-border)' }}>
@@ -159,14 +161,14 @@ export default function PersonProfile({ username, onClose }) {
                           color: b.availability === 'available' ? '#22c55e' : '#fbbf24',
                           backgroundColor: b.availability === 'available' ? 'color-mix(in srgb, #22c55e 15%, transparent)' : 'color-mix(in srgb, #fbbf24 15%, transparent)',
                         }}>
-                        {b.availability === 'available' ? 'Available' : 'In transit'}
+                        {b.availability === 'available' ? t('shelf.available') : t('shelf.inTransit')}
                       </span>
                     </div>
                   ))}
                 </div>
               </Section>
 
-              <Section title="Recently Read" empty={recentlyRead.length === 0 ? 'No recent reads yet.' : ''}>
+              <Section title={t('profile.recentlyRead')} empty={recentlyRead.length === 0 ? t('profile.noRecent') : ''}>
                 <div className="space-y-1.5">
                   {recentlyRead.slice(0, 6).map((r, i) => (
                     <div key={i} className="flex items-center gap-2 rounded-xl px-3 py-2" style={{ backgroundColor: 'var(--tp-surface)', border: '1.5px solid var(--tp-border)' }}>
@@ -180,7 +182,7 @@ export default function PersonProfile({ username, onClose }) {
                 </div>
               </Section>
 
-              <Section title="Frequently Read" empty={frequentlyRead.length === 0 ? 'No reading patterns yet.' : ''}>
+              <Section title={t('profile.frequentlyRead')} empty={frequentlyRead.length === 0 ? t('profile.noPatterns') : ''}>
                 <div className="space-y-1.5">
                   {frequentlyRead.slice(0, 6).map((f, i) => (
                     <div key={i} className="flex items-center gap-2 rounded-xl px-3 py-2" style={{ backgroundColor: 'var(--tp-surface)', border: '1.5px solid var(--tp-border)' }}>
@@ -188,7 +190,7 @@ export default function PersonProfile({ username, onClose }) {
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium truncate" style={{ color: 'var(--tp-text)' }}>{f.title}</p>
                       </div>
-                      <span className="text-[10px] flex-shrink-0" style={{ color: 'var(--tp-text-secondary)' }}>{f.count}x</span>
+                      <span className="text-[10px] flex-shrink-0" style={{ color: 'var(--tp-text-secondary)' }}>{t('profile.readCount', { count: f.count })}</span>
                     </div>
                   ))}
                 </div>

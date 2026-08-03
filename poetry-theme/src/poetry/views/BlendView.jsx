@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useBook } from '../contexts/BookContext'
 import { useAuth } from '../../auth/AuthContext'
+import { useLanguage } from '../../language/LanguageProvider'
 import { apiSearchShelfBooks } from '../../api/shelfBooks'
 import LegalLinks from '../components/LegalLinks'
 import PeerRequestCard, { isOngoingBlend } from '../components/PeerRequestCard'
@@ -11,6 +12,7 @@ import {
 export default function BlendView({ onNavigate, focusQuery, onOpenAuth, onOpenChat }) {
   const { sendRequest, addNotif, inbox } = useBook()
   const { user } = useAuth()
+  const { t } = useLanguage()
   const [query, setQuery] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -32,7 +34,7 @@ export default function BlendView({ onNavigate, focusQuery, onOpenAuth, onOpenCh
       const groups = await fetchNearbyGroups(user)
       setResults(groups)
     } catch {
-      setError('Could not load nearby books — please try again.')
+      setError(t('blend.couldNotLoad'))
       setResults([])
     } finally {
       setBusy(false)
@@ -40,19 +42,19 @@ export default function BlendView({ onNavigate, focusQuery, onOpenAuth, onOpenCh
   }
 
   async function runSearch(term) {
-    const t = (term || '').trim()
-    if (!t || busy) return
+    const q = (term || '').trim()
+    if (!q || busy) return
     setBusy(true)
     setError('')
     setResults(null)
     try {
-      const rows = await apiSearchShelfBooks(t)
+      const rows = await apiSearchShelfBooks(q)
       const groups = groupBooks(rows, user)
       await addDistances(groups, user)
       groups.sort((a, b) => nearestDist(a) - nearestDist(b))
       setResults(groups)
     } catch {
-      setError('Search failed — try again.')
+      setError(t('blend.searchFailed'))
       setResults([])
     } finally {
       setBusy(false)
@@ -69,10 +71,10 @@ export default function BlendView({ onNavigate, focusQuery, onOpenAuth, onOpenCh
   }, [focusQuery]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleRequest(book, holder) {
-    const holderName = holder.h.holder_username || 'Reader'
+    const holderName = holder.h.holder_username || t('common.reader')
     if (!user) {
       if (onOpenAuth) { onOpenAuth(); return }
-      addNotif('Sign in to request a book')
+      addNotif(t('blend.signInToRequest'))
       return
     }
     const key = `${book.title}|${holderName}`
@@ -80,9 +82,9 @@ export default function BlendView({ onNavigate, focusQuery, onOpenAuth, onOpenCh
     sendRequest(holderName, {
       bookTitle: book.title,
       author: book.author || '',
-      message: `Hai, I'm interested in reading "${book.title}" can you please share.`,
+      message: t('blend.requestMessage', { title: book.title }),
     })
-    addNotif(`Request sent to a nearby reader for "${book.title}"`)
+    addNotif(t('blend.requestSent', { title: book.title }))
     setRequestedKey(key)
   }
 
@@ -97,7 +99,7 @@ export default function BlendView({ onNavigate, focusQuery, onOpenAuth, onOpenCh
           </svg>
         </button>
         <h2 className="text-xl font-bold" style={{ color: 'var(--tp-text)', fontFamily: '"Playfair Display", Georgia, serif' }}>
-          Blend
+          {t('nav.blend')}
         </h2>
       </div>
 
@@ -106,12 +108,12 @@ export default function BlendView({ onNavigate, focusQuery, onOpenAuth, onOpenCh
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); runSearch(query) } }}
-          placeholder="Search a book by title or author…"
+          placeholder={t('blend.searchPlaceholder')}
           className="w-full px-4 py-3 rounded-xl text-sm outline-none"
           style={{ backgroundColor: 'var(--tp-surface)', color: 'var(--tp-text)', border: '1.5px solid var(--tp-border)' }} />
         <button onClick={() => runSearch(query)}
           className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-lg transition-all hover:scale-105 active:scale-95"
-          style={{ color: 'var(--tp-secondary)' }} aria-label="Search">
+          style={{ color: 'var(--tp-secondary)' }} aria-label={t('common.search')}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
             <circle cx="11" cy="11" r="8" />
             <path d="m21 21-4.35-4.35" />
@@ -123,7 +125,7 @@ export default function BlendView({ onNavigate, focusQuery, onOpenAuth, onOpenCh
         <div className="space-y-3 mb-4">
           <div className="rounded-2xl p-3" style={{ backgroundColor: 'color-mix(in srgb, var(--tp-secondary) 8%, transparent)', border: '1.5px solid var(--tp-border)' }}>
             <p className="text-[10px] font-bold mb-2 tracking-wide" style={{ color: 'var(--tp-secondary)' }}>
-              {isOngoingBlend(inbox, me, focusBook.title) ? 'Your blend' : 'Request this book'}
+              {isOngoingBlend(inbox, me, focusBook.title) ? t('blend.yourBlend') : t('blend.requestThisBook')}
             </p>
             <PeerRequestCard
               book={focusBook}
@@ -139,10 +141,10 @@ export default function BlendView({ onNavigate, focusQuery, onOpenAuth, onOpenCh
       {!focusBook && !results && !busy && (
         <div className="rounded-xl p-8 text-center" style={{ backgroundColor: 'var(--tp-surface)', border: '1.5px dashed var(--tp-border)' }}>
           <p className="text-sm" style={{ color: 'var(--tp-text-secondary)' }}>
-            Use the search bar above to find a book — discover nearby readers who have it.
+            {t('blend.emptyState')}
           </p>
           <p className="text-xs mt-2" style={{ color: 'var(--tp-text-secondary)', opacity: 0.7 }}>
-            Your books travel the world, one reader at a time.
+            {t('blend.emptySubtext')}
           </p>
         </div>
       )}
@@ -151,7 +153,7 @@ export default function BlendView({ onNavigate, focusQuery, onOpenAuth, onOpenCh
         <div className="flex items-center justify-center gap-2 py-8">
           <span className="w-5 h-5 rounded-full border-2 border-transparent animate-spin inline-block"
             style={{ borderTopColor: 'var(--tp-secondary)' }} />
-          <span className="text-xs" style={{ color: 'var(--tp-text-secondary)' }}>Finding books near you...</span>
+          <span className="text-xs" style={{ color: 'var(--tp-text-secondary)' }}>{t('blend.findingBooks')}</span>
         </div>
       )}
 
@@ -164,7 +166,7 @@ export default function BlendView({ onNavigate, focusQuery, onOpenAuth, onOpenCh
       {results && results.length === 0 && !busy && !error && !focusBook && (
         <div className="rounded-xl p-6 text-center" style={{ backgroundColor: 'var(--tp-surface)', border: '1.5px dashed var(--tp-border)' }}>
           <p className="text-sm" style={{ color: 'var(--tp-text-secondary)' }}>
-            No books listed yet. Try searching by name, or add a book to your shelf to make it findable.
+            {t('blend.noBooks')}
           </p>
         </div>
       )}
@@ -172,7 +174,9 @@ export default function BlendView({ onNavigate, focusQuery, onOpenAuth, onOpenCh
       {query && results && results.length > 0 && !busy && (
         <div className="space-y-3">
           <p className="text-xs font-semibold mb-2" style={{ color: 'var(--tp-text-secondary)' }}>
-            {results.length} book{results.length > 1 ? 's' : ''} found for "{query}"
+            {results.length === 1
+              ? t('blend.resultFound', { count: results.length, query })
+              : t('blend.resultsFound', { count: results.length, query })}
           </p>
           {results.map((book, i) => (
             <PeerRequestCard
@@ -192,7 +196,9 @@ export default function BlendView({ onNavigate, focusQuery, onOpenAuth, onOpenCh
           {ongoingBooks.length > 0 ? (
             <>
               <p className="text-xs font-semibold mb-2" style={{ color: 'var(--tp-text-secondary)' }}>
-                {ongoingBooks.length} ongoing blend{ongoingBooks.length > 1 ? 's' : ''}
+                {ongoingBooks.length === 1
+                  ? t('blend.ongoingBlend', { count: ongoingBooks.length })
+                  : t('blend.ongoingBlends', { count: ongoingBooks.length })}
               </p>
               {ongoingBooks
                 .filter((b) => !focusBook || b.title !== focusBook.title)
@@ -210,7 +216,7 @@ export default function BlendView({ onNavigate, focusQuery, onOpenAuth, onOpenCh
           ) : (
             <div className="rounded-xl p-6 text-center" style={{ backgroundColor: 'var(--tp-surface)', border: '1.5px dashed var(--tp-border)' }}>
               <p className="text-sm" style={{ color: 'var(--tp-text-secondary)' }}>
-                No ongoing blends yet. Search above or tap a book under "Books Near You" to start a request.
+                {t('blend.noOngoing')}
               </p>
             </div>
           )}
@@ -219,7 +225,7 @@ export default function BlendView({ onNavigate, focusQuery, onOpenAuth, onOpenCh
 
       <div className="pt-4 pb-2 mt-6" style={{ borderTop: '1px solid var(--tp-border)' }}>
         <p className="text-[10px] text-center mb-2" style={{ color: 'var(--tp-text-secondary)', opacity: 0.7 }}>
-          Reader details stay hidden — they are shared only after they accept your request in the inbox.
+          {t('blend.readerHidden')}
         </p>
         <LegalLinks onNavigate={onNavigate} />
       </div>

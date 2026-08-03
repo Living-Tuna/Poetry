@@ -1,4 +1,5 @@
 import { COUNTRIES } from '../constants/languages'
+import { translate } from '../language/translator'
 
 function titleCase(str) {
   return str
@@ -10,29 +11,29 @@ function titleCase(str) {
 
 async function zippopotamState(countryCode, zip) {
   const res = await fetch(`https://api.zippopotam.us/${countryCode}/${zip}`)
-  if (!res.ok) throw new Error('ZIP not found')
+  if (!res.ok) throw new Error(translate('errors.zipNotFound'))
   const data = await res.json()
   const state = data?.places?.[0]?.state
-  if (!state) throw new Error('No state returned')
+  if (!state) throw new Error(translate('errors.noStateReturned'))
   return state
 }
 
 async function indiaPincodeState(zip) {
   const res = await fetch(`https://aniket-thapa.github.io/india-pincode-api/pincodes/${zip}.json`)
-  if (!res.ok) throw new Error('PIN not found')
+  if (!res.ok) throw new Error(translate('errors.pinNotFound'))
   const data = await res.json()
   const state = data?.state
-  if (!state) throw new Error('No state returned')
+  if (!state) throw new Error(translate('errors.noStateReturned'))
   return titleCase(state)
 }
 
 async function indiaPostalState(zip) {
   const target = `https://api.postalpincode.in/pincode/${zip}`
   const res = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(target)}`)
-  if (!res.ok) throw new Error('PIN not found')
+  if (!res.ok) throw new Error(translate('errors.pinNotFound'))
   const data = await res.json()
   const state = Array.isArray(data) && data[0]?.PostOffice?.[0]?.State
-  if (!state) throw new Error('No state returned')
+  if (!state) throw new Error(translate('errors.noStateReturned'))
   return state
 }
 
@@ -47,7 +48,7 @@ export async function apiFetchStateFromZip(countryCode, zip) {
       lastErr = err
     }
   }
-  throw lastErr || new Error('No state returned')
+  throw lastErr || new Error(translate('errors.noStateReturned'))
 }
 
 function stateFromReverseGeocode(data) {
@@ -63,7 +64,7 @@ function stateFromReverseGeocode(data) {
 export function apiAutoDetectLocation() {
   return new Promise((resolve, reject) => {
     if (!navigator.geolocation) {
-      reject(new Error('Geolocation not supported'))
+      reject(new Error(translate('errors.geolocationNotSupported')))
       return
     }
     navigator.geolocation.getCurrentPosition(
@@ -73,7 +74,7 @@ export function apiAutoDetectLocation() {
           const res = await fetch(
             `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`,
           )
-          if (!res.ok) throw new Error('Reverse geocode failed')
+          if (!res.ok) throw new Error(translate('errors.reverseGeocodeFailed'))
           const data = await res.json()
           const code = data.countryCode
           const country = (code && COUNTRIES[code]?.name) || data.countryName || ''
@@ -91,7 +92,7 @@ export function apiAutoDetectLocation() {
           reject(err)
         }
       },
-      () => reject(new Error('Location permission denied')),
+      () => reject(new Error(translate('errors.locationPermissionDenied'))),
       { timeout: 10000, maximumAge: 600000, enableHighAccuracy: false },
     )
   })

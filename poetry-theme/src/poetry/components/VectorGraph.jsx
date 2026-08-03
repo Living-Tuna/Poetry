@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { formatDist, bookVector } from '../views/nearbyBooks'
+import { useLanguage } from '../../language/LanguageProvider'
 
 const SIZE = 340
 const CX = SIZE / 2
@@ -63,6 +64,7 @@ function truncate(s, n = 16) {
 }
 
 export default function VectorGraph({ groups = [], onSelect, note }) {
+  const { t } = useLanguage()
   const { nodes, maxKm, hasUnknown } = useMemo(() => {
     const withVec = []
     for (const g of groups) {
@@ -82,7 +84,7 @@ export default function VectorGraph({ groups = [], onSelect, note }) {
     return (
       <div className="rounded-xl p-6 text-center" style={{ backgroundColor: 'var(--tp-surface)', border: '1.5px dashed var(--tp-border)' }}>
         <p className="text-xs" style={{ color: 'var(--tp-text-secondary)' }}>
-          No nearby locations to map yet — add your location in Settings, and make sure a reader's location is saved too.
+          {t('graph.noLocations')}
         </p>
       </div>
     )
@@ -127,12 +129,12 @@ export default function VectorGraph({ groups = [], onSelect, note }) {
 
         <circle cx={CX} cy={CY} r="15" fill="var(--tp-secondary)" opacity="0.15" />
         <circle cx={CX} cy={CY} r="7" fill="var(--tp-secondary)" />
-        <text x={CX} y={CY - 22} fontSize="8" fontWeight="bold" textAnchor="middle" fill="var(--tp-text)">You</text>
+        <text x={CX} y={CY - 22} fontSize="8" fontWeight="bold" textAnchor="middle" fill="var(--tp-text)">{t('graph.you')}</text>
       </svg>
 
       {hasUnknown && (
         <p className="text-[10px] mt-2" style={{ color: 'var(--tp-text-secondary)', opacity: 0.8 }}>
-          {groups.length - nodes.length} book{groups.length - nodes.length > 1 ? 's' : ''} without a mapped location.
+          {t(groups.length - nodes.length > 1 ? 'graph.unmappedBooks' : 'graph.unmappedBook', { count: groups.length - nodes.length })}
         </p>
       )}
       {note && (

@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { supabase } from '../supabase/client'
+import { translate } from '../language/translator'
 import {
   apiLogin, apiSignup, apiCheckUsername,
   apiGetSecurityQuestion, apiVerifyAnswer, apiResetPassword,
@@ -57,7 +58,7 @@ export function AuthProvider({ children }) {
 
   const signup = useCallback(async (username, password, name, question, answer, country, state, zip) => {
     const now = Date.now()
-    if (now - lastSignup.current < 10000) return { ok: false, error: 'Please wait a few seconds before trying again.' }
+    if (now - lastSignup.current < 10000) return { ok: false, error: translate('auth.throttle') }
     lastSignup.current = now
     return apiSignup(username, password, name, question, answer, country, state, zip)
   }, [])

@@ -1,7 +1,9 @@
 import { usePoetry } from './PoetryContext'
+import { useLanguage } from '../language/LanguageProvider'
 
 export default function PoetryView({ onBack }) {
   const { currentPoem, expanded, setExpanded } = usePoetry()
+  const { t } = useLanguage()
 
   if (!currentPoem) return null
 
@@ -16,7 +18,7 @@ export default function PoetryView({ onBack }) {
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
             <path d="M12 5v14M5 12h14" />
           </svg>
-          Read Full Poem
+          {t('poetry.readFullPoem')}
         </button>
       </div>
     )
@@ -40,7 +42,7 @@ export default function PoetryView({ onBack }) {
             onClick={() => setExpanded(false)}
             className="p-1.5 rounded-lg transition-colors hover:opacity-70"
             style={{ color: 'var(--tp-text-secondary)' }}
-            aria-label="Collapse"
+            aria-label={t('poetry.collapse')}
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <path d="M18 15l-6-6-6 6" />

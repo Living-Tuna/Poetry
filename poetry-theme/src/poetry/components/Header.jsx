@@ -1,15 +1,10 @@
 import { useState, useRef, useEffect, useMemo } from 'react'
 import { apiSearchShelfBooks } from '../../api/shelfBooks'
+import { useLanguage } from '../../language/LanguageProvider'
 
 const SCOPES = {
   favorites: 'favourites',
   blend: 'books',
-}
-
-const PLACEHOLDERS = {
-  poems: 'Search poems or poets...',
-  favourites: 'Search your favourite lines...',
-  books: 'Search books to borrow...',
 }
 
 export default function Header({
@@ -19,6 +14,7 @@ export default function Header({
   chatContact, chatName, chatRevealed, onChatBack, onChatProfile,
   notice, onNoticeClick,
 }) {
+  const { t } = useLanguage()
   const scope = SCOPES[view] || 'poems'
   const [searchOpen, setSearchOpen] = useState(false)
   const [query, setQuery] = useState('')
@@ -168,19 +164,19 @@ export default function Header({
         <div className="px-4 py-3 flex items-center gap-2 relative">
         {isChat ? (
           <>
-            <button onClick={onChatBack} className="p-1.5 rounded-xl transition-opacity hover:opacity-70 flex-shrink-0" aria-label="Back to inbox">
+            <button onClick={onChatBack} className="p-1.5 rounded-xl transition-opacity hover:opacity-70 flex-shrink-0" aria-label={t('header.backToInbox')}>
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M15 18l-6-6 6-6" />
               </svg>
             </button>
             <div className="min-w-0 flex-1">
               <p className="text-base font-bold leading-tight truncate" style={{ fontFamily: '"Playfair Display", Georgia, serif' }}>
-                {chatRevealed ? (chatName || chatContact) : 'Anonymous'}
+                {chatRevealed ? (chatName || chatContact) : t('common.anonymous')}
               </p>
-              <p className="text-[10px] opacity-60 truncate">{chatRevealed ? (chatName ? `@${chatContact}` : 'Conversation') : 'Profile revealed after they approve'}</p>
+              <p className="text-[10px] opacity-60 truncate">{chatRevealed ? (chatName ? `@${chatContact}` : t('header.conversation')) : t('header.revealedAfterApprove')}</p>
             </div>
             {chatRevealed ? (
-              <button onClick={onChatProfile} className="p-1.5 rounded-xl transition-opacity hover:opacity-70 flex-shrink-0" aria-label="View profile">
+              <button onClick={onChatProfile} className="p-1.5 rounded-xl transition-opacity hover:opacity-70 flex-shrink-0" aria-label={t('header.viewProfile')}>
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <circle cx="12" cy="8" r="5" /><path d="M3 21v-2a7 7 0 0 1 7-7h4a7 7 0 0 1 7 7v2" />
                 </svg>
@@ -196,7 +192,7 @@ export default function Header({
           </>
         ) : (
         <>
-        <button onClick={onMenuToggle} className="p-1.5 rounded-xl transition-opacity hover:opacity-70 flex-shrink-0" aria-label="Menu">
+        <button onClick={onMenuToggle} className="p-1.5 rounded-xl transition-opacity hover:opacity-70 flex-shrink-0" aria-label={t('nav.menu')}>
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
             <path d="M4 6h16M4 12h16M4 18h16" />
           </svg>
@@ -217,12 +213,12 @@ export default function Header({
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleEnter()}
-                  placeholder={PLACEHOLDERS[scope]}
+                  placeholder={scope === 'books' ? t('header.searchBooks') : scope === 'favourites' ? t('header.searchFavorites') : t('header.searchPoems')}
                   className="w-full min-w-0 bg-transparent outline-none text-sm placeholder:opacity-50"
                   style={{ color: 'var(--tp-header-text)' }}
                 />
                 {query && (
-                  <button onClick={() => setQuery('')} className="flex-shrink-0 opacity-70 hover:opacity-100 transition-opacity" aria-label="Clear search">
+                  <button onClick={() => setQuery('')} className="flex-shrink-0 opacity-70 hover:opacity-100 transition-opacity" aria-label={t('header.clearSearch')}>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                       <path d="M6 6l12 12M18 6L6 18" />
                     </svg>
@@ -230,7 +226,7 @@ export default function Header({
                 )}
               </div>
 
-              <button onClick={closeSearch} className="flex-shrink-0 p-1.5 rounded-xl opacity-70 hover:opacity-100 transition-opacity" aria-label="Close search">
+              <button onClick={closeSearch} className="flex-shrink-0 p-1.5 rounded-xl opacity-70 hover:opacity-100 transition-opacity" aria-label={t('header.closeSearch')}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M15 18l-6-6 6-6" />
                 </svg>
@@ -242,7 +238,7 @@ export default function Header({
             <button
               onClick={() => setSearchOpen(true)}
               className="p-1.5 rounded-xl transition-opacity hover:opacity-70"
-              aria-label="Search"
+              aria-label={t('common.search')}
             >
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 <circle cx="11" cy="11" r="7" /><path d="M21 21l-4.35-4.35" />
@@ -255,10 +251,10 @@ export default function Header({
           <div className="flex items-center gap-1 ml-auto flex-shrink-0">
             <button onClick={onLangClick}
               className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold tracking-wide transition-opacity hover:opacity-70"
-              style={{ backgroundColor: 'rgba(255,255,255,0.1)' }} aria-label="Language">
+              style={{ backgroundColor: 'rgba(255,255,255,0.1)' }} aria-label={t('settings.language')}>
               {lang.toUpperCase()}
             </button>
-            <button onClick={onProfileToggle} className="p-1.5 rounded-xl transition-opacity hover:opacity-70" aria-label="Profile">
+            <button onClick={onProfileToggle} className="p-1.5 rounded-xl transition-opacity hover:opacity-70" aria-label={t('nav.profile')}>
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="8" r="5" /><path d="M3 21v-2a7 7 0 0 1 7-7h4a7 7 0 0 1 7 7v2" />
               </svg>
@@ -278,7 +274,7 @@ export default function Header({
               cursor: 'pointer',
               zIndex: 10,
             }}
-            aria-label="View notification"
+            aria-label={t('header.viewNotification')}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 opacity-80">
               <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
@@ -302,9 +298,9 @@ export default function Header({
                 }}
               >
                 {bookBusy ? (
-                  <p className="text-xs text-center py-3 opacity-60">Searching books...</p>
+                  <p className="text-xs text-center py-3 opacity-60">{t('header.searchingBooks')}</p>
                 ) : results.length === 0 ? (
-                  <p className="text-xs text-center py-3 opacity-60">No results for "{query.trim()}"</p>
+                  <p className="text-xs text-center py-3 opacity-60">{t('header.noResultsFor', { query: query.trim() })}</p>
                 ) : (
                   <div className="flex flex-wrap gap-1.5">
                     {results.map((r) => (

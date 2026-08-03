@@ -1,5 +1,6 @@
 import { COUNTRIES } from '../../constants/languages'
 import { apiFetchAllShelfBooks } from '../../api/shelfBooks'
+import { translate } from '../../language/translator'
 
 const geoCache = new Map()
 
@@ -75,9 +76,9 @@ export function bearing(a, b) {
 }
 
 export function formatDist(km) {
-  if (km < 1) return 'less than a km away'
-  if (km < 1000) return `~${Math.round(km)} km away`
-  return `~${(km / 1000).toFixed(1).replace(/\.0$/, '')}k km away`
+  if (km < 1) return translate('dist.lessThanKm')
+  if (km < 1000) return translate('dist.kmAway', { km: Math.round(km) })
+  return translate('dist.kKmAway', { km: (km / 1000).toFixed(1).replace(/\.0$/, '') })
 }
 
 export function userLocation(user) {

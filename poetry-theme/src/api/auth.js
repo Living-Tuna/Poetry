@@ -1,4 +1,5 @@
 import { supabase, hashAnswer } from '../supabase/client'
+import { translate } from '../language/translator'
 
 async function callFunction(name, body) {
   const { data, error } = await supabase.functions.invoke(name, { body })
@@ -23,7 +24,7 @@ export async function apiLogin(username, password) {
   const { error } = await supabase.auth.signInWithPassword({ email, password })
   if (error) {
     console.log('[API] login failed:', error.message)
-    if (error.message.includes('Invalid login')) return { ok: false, error: 'Invalid username or password' }
+    if (error.message.includes('Invalid login')) return { ok: false, error: translate('auth.invalidCredentials') }
     return { ok: false, error: error.message }
   }
   console.log('[API] login ok')
@@ -61,8 +62,8 @@ export async function apiSignup(username, password, name, question, answer, coun
   })
   if (error) {
     const isRateLimit = error.message?.includes('429') || error.message?.includes('Too Many Requests') || error.message?.includes('rate limit')
-    if (isRateLimit) return { ok: false, error: 'Too many signups. Please wait 1 minute and try again.' }
-    if (error.message.includes('already registered')) return { ok: false, error: 'Username already taken' }
+    if (isRateLimit) return { ok: false, error: translate('auth.tooManySignups') }
+    if (error.message.includes('already registered')) return { ok: false, error: translate('auth.usernameTakenErr') }
     if (data?.user) { console.log('[API] signup partial (user created despite error)'); return { ok: true } }
     console.log('[API] signup error:', error.message)
     return { ok: false, error: error.message }
@@ -116,10 +117,10 @@ export async function apiVerifyAnswer(username, answer) {
     const hash = await hashAnswer(answer)
     try {
       const stored = localStorage.getItem(`poetry_security_${username.toLowerCase().trim()}`)
-      if (!stored) return { ok: false, error: 'Security data not found' }
+      if (!stored) return { ok: false, error: translate('auth.securityDataNotFound') }
       return { ok: JSON.parse(stored).answerHash === hash }
     } catch {
-      return { ok: false, error: 'Security data not found' }
+      return { ok: false, error: translate('auth.securityDataNotFound') }
     }
   }
 }

@@ -1,11 +1,13 @@
 import { useRef, useState, useEffect, useLayoutEffect } from 'react'
 import { usePoetry } from './PoetryContext'
+import { useLanguage } from '../language/LanguageProvider'
 import { CloseIcon, StarIcon } from './components/Icons'
 import { isIndependentPoem } from '../constants'
 
 const CATEGORIES = ['Love', 'Nature', 'Philosophy', 'Tragedy', 'Hope', 'Spirituality', 'Freedom', 'War', 'Death', 'Joy', 'Reflection', 'Fantasy']
 const SWIPE_THRESHOLD = 40
 const TAP_THRESHOLD = 10
+const LOCK_THRESHOLD = 8
 const ANIM_DURATION = 380
 
 function abbrev(n) {
@@ -30,6 +32,7 @@ export default function FullscreenView() {
     queue, index, favorites,
     hasLiked, toggleLikePoem,
   } = usePoetry()
+  const { t } = useLanguage()
 
   function isLineFav(poemId, i) {
     return favorites.some((f) =>
@@ -42,6 +45,9 @@ export default function FullscreenView() {
 
   const userPoem = isUserPoem(currentPoem)
   const lines = currentPoem?.content?.split('\n')?.filter(Boolean) || []
+  const markedCount = currentPoem
+    ? favorites.filter((f) => String(f.poemId) === String(currentPoem.id)).length
+    : 0
   const [editing, setEditing] = useState(editOnOpen && userPoem)
   const [editTitle, setEditTitle] = useState(editOnOpen && userPoem ? currentPoem.title : '')
   const [editContent, setEditContent] = useState(editOnOpen && userPoem ? currentPoem.content : '')
@@ -52,6 +58,8 @@ export default function FullscreenView() {
   const [animating, setAnimating] = useState(false)
   const [dragging, setDragging] = useState(false)
   const dragStart = useRef(null)
+  const axisLock = useRef(null)
+  const dragTargetScroll = useRef(null)
   const scrollRef = useRef(null)
   const scrollPositions = useRef({})
 
@@ -104,6 +112,19 @@ export default function FullscreenView() {
     }, ANIM_DURATION)
   }
 
+  function resetTrack() {
+    setAnimating(true)
+    setTrackX(0)
+    setTimeout(() => setAnimating(false), ANIM_DURATION)
+  }
+
+  function restoreScroll() {
+    if (dragTargetScroll.current) {
+      dragTargetScroll.current.style.overflow = ''
+      dragTargetScroll.current = null
+    }
+  }
+
   function handlePointerDown(e) {
     if (editing) return
     if (e.target.closest('button, [role="button"], a')) return
@@ -114,7 +135,10 @@ export default function FullscreenView() {
       y: e.clientY,
       line: lineEl ? Number(lineEl.dataset.line) : null,
     }
+    axisLock.current = null
+    dragTargetScroll.current = e.target.closest('.poem-scroll') || null
     setDragging(true)
+    try { e.currentTarget.setPointerCapture(e.pointerId) } catch {}
   }
 
   function handlePointerMove(e) {
@@ -123,9 +147,27 @@ export default function FullscreenView() {
     const dx = e.clientX - dragStart.current.x
     const dy = e.clientY - dragStart.current.y
 
-    if (Math.abs(dy) > Math.abs(dx) * 1.5 && Math.abs(dy) > 10) {
-      return
+    if (axisLock.current === null) {
+      const absDx = Math.abs(dx)
+      const absDy = Math.abs(dy)
+      if (absDx > LOCK_THRESHOLD && absDx > absDy) {
+        axisLock.current = 'h'
+      } else if (absDy > LOCK_THRESHOLD && absDy > absDx) {
+        axisLock.current = 'v'
+        setDragging(false)
+        try { e.currentTarget.releasePointerCapture(e.pointerId) } catch {}
+        return
+      } else {
+        return
+      }
     }
+
+    if (axisLock.current === 'v') return
+
+    if (dragTargetScroll.current) {
+      dragTargetScroll.current.style.overflow = 'hidden'
+    }
+    if (e.cancelable) e.preventDefault()
 
     const vw = window.innerWidth
     const pct = (dx / vw) * 100
@@ -139,16 +181,22 @@ export default function FullscreenView() {
     const dx = e.clientX - dragStart.current.x
     const dy = e.clientY - dragStart.current.y
     const tappedLine = dragStart.current.line
+    const wasHorizontal = axisLock.current === 'h'
+    restoreScroll()
     setDragging(false)
     dragStart.current = null
+    axisLock.current = null
 
-    if (Math.abs(dx) <= TAP_THRESHOLD && Math.abs(dy) <= TAP_THRESHOLD) {
-      if (tappedLine !== null) toggleLineFavorite(tappedLine)
-      return
-    }
-
-    if (dy > 60 && Math.abs(dy) > Math.abs(dx) * 1.5) {
-      closeFullscreen()
+    if (!wasHorizontal) {
+      if (Math.abs(dx) <= TAP_THRESHOLD && Math.abs(dy) <= TAP_THRESHOLD) {
+        if (tappedLine !== null) toggleLineFavorite(tappedLine)
+        return
+      }
+      if (dy > 60 && Math.abs(dy) > Math.abs(dx) * 1.5) {
+        closeFullscreen()
+        return
+      }
+      if (trackX !== 0) resetTrack()
       return
     }
 
@@ -157,15 +205,16 @@ export default function FullscreenView() {
     } else if (dx > SWIPE_THRESHOLD && canSwipeLeft) {
       goPrev()
     } else {
-      setAnimating(true)
-      setTrackX(0)
-      setTimeout(() => setAnimating(false), ANIM_DURATION)
+      resetTrack()
     }
   }
 
   function handlePointerCancel() {
+    restoreScroll()
     setDragging(false)
     dragStart.current = null
+    axisLock.current = null
+    if (trackX !== 0) resetTrack()
   }
 
   function handlePoemScroll() {
@@ -193,35 +242,24 @@ export default function FullscreenView() {
       })
       .filter(Boolean)
 
-    const exact = poemFavs.find(({ range }) => range[0] === i && range[1] === i)
-    if (exact) {
-      removeFavorite(exact.f.key)
+    const covering = poemFavs.find(({ range }) => i >= range[0] && i <= range[1])
+    if (covering) {
+      removeFavorite(covering.f.key)
       return
     }
 
     let lo = i
+    while (lo > 0 && !endsSentence(lines[lo - 1])) lo--
     let hi = i
-    const absorbed = new Set()
-    let changed = true
-    while (changed) {
-      changed = false
-      for (const { f, range: r } of poemFavs) {
-        if (absorbed.has(f.key)) continue
-        const touchesAbove = r[1] + 1 === lo && !endsSentence(lines[r[1]])
-        const touchesBelow = hi + 1 === r[0] && !endsSentence(lines[hi])
-        const overlaps = r[0] <= hi && r[1] >= lo
-        if (touchesAbove || touchesBelow || overlaps) {
-          lo = Math.min(lo, r[0])
-          hi = Math.max(hi, r[1])
-          absorbed.add(f.key)
-          changed = true
-        }
-      }
-    }
+    while (hi < lines.length - 1 && !endsSentence(lines[hi])) hi++
+
+    poemFavs.forEach(({ f, range }) => {
+      if (range[0] > hi || range[1] < lo) return
+      removeFavorite(f.key)
+    })
 
     const key = `${poemId}::${lines[lo]}`
     const sentenceText = lines.slice(lo, hi + 1).join(' ').trim()
-    absorbed.forEach((k) => { if (k !== key) removeFavorite(k) })
     upsertFavorite(poemId, {
       key,
       lineText: lines[lo],
@@ -234,7 +272,7 @@ export default function FullscreenView() {
   if (!currentPoem) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ backgroundColor: 'var(--tp-bg)' }}>
-        <p style={{ color: 'var(--tp-text-secondary)' }}>No poem selected</p>
+        <p style={{ color: 'var(--tp-text-secondary)' }}>{t('poetry.noPoemSelected')}</p>
         <button onClick={closeFullscreen} className="absolute top-6 right-6 p-2 rounded-xl" style={{ color: 'var(--tp-text)' }}><CloseIcon size={20} /></button>
       </div>
     )
@@ -259,13 +297,13 @@ export default function FullscreenView() {
             onClick={closeFullscreen}
             className="p-1.5 rounded-xl transition-opacity hover:opacity-70"
             style={{ color: 'var(--tp-text-secondary)' }}
-            aria-label="Close"
+            aria-label={t('common.close')}
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <path d="M19 12H5M12 19l-7-7 7-7" />
             </svg>
           </button>
-          <span className="text-xs" style={{ color: 'var(--tp-text-secondary)' }}>Swipe sideways to switch</span>
+          <span className="text-xs" style={{ color: 'var(--tp-text-secondary)' }}>{t('poetry.swipeSideways')}</span>
         </div>
         <div className="flex items-center gap-2">
           {userPoem && (
@@ -276,13 +314,13 @@ export default function FullscreenView() {
                 style={{ color: editing ? '#ef4444' : 'var(--tp-secondary)' }}
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" /></svg>
-                {editing ? 'Cancel' : 'Edit'}
+                {editing ? t('common.cancel') : t('common.edit')}
               </button>
               <button
                 onClick={(e) => { e.stopPropagation(); deleteMyPoem(currentPoem.id) }}
                 className="p-1.5 rounded-xl transition-all hover:scale-110 active:scale-90"
                 style={{ color: '#ef4444' }}
-                aria-label="Delete"
+                aria-label={t('common.delete')}
               ><CloseIcon size={14} /></button>
             </>
           )}
@@ -296,7 +334,10 @@ export default function FullscreenView() {
               <path d="M15 18l-6-6 6-6" />
             </svg>
           </button>
-          <span className="text-xs tabular-nums" style={{ color: 'var(--tp-text-secondary)' }}>{lines.length} lines</span>
+          <span className="text-xs tabular-nums flex items-center gap-2" style={{ color: 'var(--tp-text-secondary)' }}>
+            <span className="flex items-center gap-0.5"><StarIcon size={12} /> {markedCount}</span>
+            <span>{t('poetry.lines', { count: lines.length })}</span>
+          </span>
           <button
             onClick={(e) => { e.stopPropagation(); goNext() }}
             disabled={!canSwipeRight}
@@ -338,11 +379,12 @@ export default function FullscreenView() {
           onPointerUp={handlePointerUp}
           onPointerLeave={handlePointerUp}
           onPointerCancel={handlePointerCancel}
+          onLostPointerCapture={handlePointerCancel}
         >
           {/* Left card */}
           <div className="flex-shrink-0 w-1/3 h-full overflow-y-auto poem-scroll px-5 py-8"
             style={{ touchAction: 'pan-y' }}>
-            <PoemView poem={leftPoem} liked={hasLiked(leftPoem?.id)} onToggleLike={toggleLikePoem} />
+            <PoemView poem={leftPoem} liked={hasLiked(leftPoem?.id)} onToggleLike={toggleLikePoem} t={t} />
           </div>
 
           {/* Center card */}
@@ -351,7 +393,7 @@ export default function FullscreenView() {
               <div className="h-full overflow-y-auto poem-scroll px-5 py-8">
                 <div className="mb-8 text-center">
                   <input value={editTitle} onChange={(e) => setEditTitle(e.target.value)}
-                    placeholder="Poem title..."
+                    placeholder={t('writings.titlePlaceholder')}
                     className="w-full text-center text-2xl sm:text-3xl font-bold px-3 py-2 rounded-xl outline-none transition-colors"
                     style={{ color: 'var(--tp-text)', backgroundColor: 'transparent', border: '1.5px solid var(--tp-border)', fontFamily: '"Playfair Display", Georgia, serif' }}
                     onFocus={(e) => e.target.style.backgroundColor = 'var(--tp-bg)'}
@@ -363,14 +405,14 @@ export default function FullscreenView() {
                 </div>
                 <div className="space-y-4">
                   <textarea value={editContent} onChange={(e) => setEditContent(e.target.value)}
-                    placeholder="Write your poem here..." rows={14}
+                    placeholder={t('writings.contentPlaceholder')} rows={14}
                     className="w-full px-3 py-2 rounded-xl text-sm outline-none resize-none transition-colors"
                     style={{ color: 'var(--tp-text)', backgroundColor: 'transparent', border: '1.5px solid var(--tp-border)', fontFamily: '"Playfair Display", Georgia, serif', lineHeight: '1.7' }}
                     onFocus={(e) => e.target.style.backgroundColor = 'var(--tp-bg)'}
                     onBlur={(e) => e.target.style.backgroundColor = 'transparent'}
                   />
                   <div>
-                    <p className="text-xs font-medium mb-2" style={{ color: 'var(--tp-text-secondary)' }}>Categories (up to 3):</p>
+                    <p className="text-xs font-medium mb-2" style={{ color: 'var(--tp-text-secondary)' }}>{t('writings.categoriesHint', { count: 3 })}</p>
                     <div className="flex flex-wrap gap-1.5">
                       {CATEGORIES.map((cat) => {
                         const selected = editCategories.includes(cat)
@@ -387,7 +429,7 @@ export default function FullscreenView() {
                               border: '1px solid var(--tp-border)',
                               opacity: !selected && editCategories.length >= 3 ? 0.4 : 1,
                             }}
-                          >{cat}</button>
+                          >{t('category.' + cat.toLowerCase())}</button>
                         )
                       })}
                     </div>
@@ -395,14 +437,14 @@ export default function FullscreenView() {
                   <div className="flex gap-2 justify-end">
                     <button onClick={() => setEditing(false)}
                       className="px-4 py-2 rounded-xl text-sm transition-colors"
-                      style={{ color: 'var(--tp-text-secondary)', backgroundColor: 'var(--tp-bg)' }}>Cancel</button>
+                      style={{ color: 'var(--tp-text-secondary)', backgroundColor: 'var(--tp-bg)' }}>{t('common.cancel')}</button>
                     <button onClick={async () => {
                       if (!editTitle.trim() || !editContent.trim()) return
                       await updateMyPoem(currentPoem.id, { title: editTitle.trim(), content: editContent.trim(), categories: editCategories })
                       setEditing(false)
                     }}
                       className="px-4 py-2 rounded-xl text-sm font-medium text-white transition-all hover:opacity-80"
-                      style={{ backgroundColor: 'var(--tp-secondary)' }}>Save</button>
+                      style={{ backgroundColor: 'var(--tp-secondary)' }}>{t('common.save')}</button>
                   </div>
                 </div>
               </div>
@@ -431,7 +473,7 @@ export default function FullscreenView() {
                     <div className="flex flex-wrap justify-center gap-1.5 mt-2">
                       {currentPoem.categories.map((cat) => (
                         <span key={cat} className="text-[10px] px-2 py-0.5 rounded-full" style={{ backgroundColor: 'color-mix(in srgb, var(--tp-secondary) 20%, transparent)', color: 'var(--tp-secondary)' }}>
-                          {cat}
+                          {t('category.' + cat.toLowerCase())}
                         </span>
                       ))}
                     </div>
@@ -449,7 +491,7 @@ export default function FullscreenView() {
                     </button>
                   ) : (
                     <span className="inline-block text-[10px] px-2 py-0.5 rounded-full mt-3" style={{ backgroundColor: 'color-mix(in srgb, var(--tp-text-secondary) 12%, transparent)', color: 'var(--tp-text-secondary)' }}>
-                      Historic poem · not ratable
+                      {t('poetry.historicNotRatable')}
                     </span>
                   )}
                 </div>
@@ -478,7 +520,6 @@ export default function FullscreenView() {
                         }}
                       >
                         {line}
-                        {fav && <sup className="ml-0.5" style={{ color: 'var(--tp-secondary)', fontSize: '0.6rem', verticalAlign: 'super', lineHeight: '0' }}><StarIcon size={8} /></sup>}
                       </p>
                     )
                   })}
@@ -486,7 +527,7 @@ export default function FullscreenView() {
 
                 {/* Hint */}
                 <p className="text-center text-xs mt-10 mb-6" style={{ color: 'var(--tp-text-secondary)', opacity: 0.4 }}>
-                  Tap a line to save as favorite <StarIcon size={12} />
+                  {t('poetry.tapToSaveFavorite')} · {t('poetry.tapToRemoveFavorite')} <StarIcon size={12} />
                 </p>
               </div>
             )}
@@ -495,7 +536,7 @@ export default function FullscreenView() {
           {/* Right card */}
           <div className="flex-shrink-0 w-1/3 h-full overflow-y-auto poem-scroll px-5 py-8"
             style={{ touchAction: 'pan-y' }}>
-            <PoemView poem={rightPoem} liked={hasLiked(rightPoem?.id)} onToggleLike={toggleLikePoem} />
+            <PoemView poem={rightPoem} liked={hasLiked(rightPoem?.id)} onToggleLike={toggleLikePoem} t={t} />
           </div>
         </div>
       </div>
@@ -506,18 +547,18 @@ export default function FullscreenView() {
         style={{ color: 'var(--tp-text-secondary)', borderTop: '1px solid var(--tp-border)', backgroundColor: 'var(--tp-bg)' }}
       >
         <button onClick={goPrev} disabled={!canSwipeLeft} className="disabled:opacity-30">
-          ← {canSwipeLeft ? 'Prev' : '—'}
+          ← {canSwipeLeft ? t('poetry.prev') : '—'}
         </button>
-        <span>Swipe or <kbd className="px-1 rounded" style={{ backgroundColor: 'var(--tp-border)', padding: '1px 6px' }}>←</kbd> <kbd className="px-1 rounded" style={{ backgroundColor: 'var(--tp-border)', padding: '1px 6px' }}>→</kbd></span>
+        <span>{t('poetry.swipeOr')} <kbd className="px-1 rounded" style={{ backgroundColor: 'var(--tp-border)', padding: '1px 6px' }}>←</kbd> <kbd className="px-1 rounded" style={{ backgroundColor: 'var(--tp-border)', padding: '1px 6px' }}>→</kbd></span>
         <button onClick={goNext} disabled={!canSwipeRight} className="disabled:opacity-30">
-          {canSwipeRight ? 'Next' : '—'} →
+          {canSwipeRight ? t('poetry.next') : '—'} →
         </button>
       </div>
     </div>
   )
 }
 
-function PoemView({ poem, liked, onToggleLike }) {
+function PoemView({ poem, liked, onToggleLike, t }) {
   if (!poem) return null
   const poemLines = poem.content.split('\n').filter(Boolean)
   return (
@@ -537,7 +578,7 @@ function PoemView({ poem, liked, onToggleLike }) {
           <div className="flex flex-wrap justify-center gap-1.5 mt-2">
             {poem.categories.map((cat) => (
               <span key={cat} className="text-[10px] px-2 py-0.5 rounded-full" style={{ backgroundColor: 'color-mix(in srgb, var(--tp-secondary) 20%, transparent)', color: 'var(--tp-secondary)' }}>
-                {cat}
+                {t('category.' + cat.toLowerCase())}
               </span>
             ))}
           </div>
@@ -555,7 +596,7 @@ function PoemView({ poem, liked, onToggleLike }) {
           </button>
         ) : (
           <span className="inline-block text-[10px] px-2 py-0.5 rounded-full mt-3" style={{ backgroundColor: 'color-mix(in srgb, var(--tp-text-secondary) 12%, transparent)', color: 'var(--tp-text-secondary)' }}>
-            Historic poem · not ratable
+            {t('poetry.historicNotRatable')}
           </span>
         )}
       </div>

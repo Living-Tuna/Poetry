@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { COUNTRIES } from '../../constants/languages'
+import { useLanguage } from '../../language/LanguageProvider'
 
 export default function LanguageOnboarding() {
+  const { t } = useLanguage()
   const navigate = useNavigate()
   const [search, setSearch] = useState('')
   const [selectedCountry, setSelectedCountry] = useState(null)
@@ -39,13 +41,13 @@ export default function LanguageOnboarding() {
             <>
               <div className="text-center mb-6">
                 <h1 className="text-2xl font-bold mb-1" style={{ fontFamily: '"Playfair Display", Georgia, serif' }}>
-                  Welcome to Poetry
+                  {t('language.welcome')}
                 </h1>
-                <p className="text-sm opacity-70">Select your country to choose a language</p>
+                <p className="text-sm opacity-70">{t('language.selectCountrySub')}</p>
               </div>
 
               <input value={search} onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search your country..."
+                placeholder={t('language.searchCountry')}
                 className="w-full max-w-xs px-4 py-2.5 rounded-xl text-sm outline-none mb-4"
                 style={{
                   backgroundColor: 'var(--tp-surface)',
@@ -64,7 +66,7 @@ export default function LanguageOnboarding() {
                 ))}
                 {filtered.length === 0 && (
                   <p className="text-xs text-center py-4" style={{ color: 'var(--tp-text-secondary)' }}>
-                    No countries match your search
+                    {t('language.noCountries')}
                   </p>
                 )}
               </div>
@@ -77,7 +79,7 @@ export default function LanguageOnboarding() {
                 <h1 className="text-2xl font-bold mb-1" style={{ fontFamily: '"Playfair Display", Georgia, serif' }}>
                   {selectedCountry.name}
                 </h1>
-                <p className="text-sm opacity-70">Choose your language</p>
+                <p className="text-sm opacity-70">{t('language.chooseLanguage')}</p>
               </div>
 
               <div className="w-full max-w-xs space-y-1 overflow-y-auto" style={{ maxHeight: '55vh' }}>
@@ -96,7 +98,7 @@ export default function LanguageOnboarding() {
               <button onClick={handleBack}
                 className="mt-4 text-xs font-medium transition-opacity hover:opacity-70"
                 style={{ color: 'var(--tp-text-secondary)' }}>
-                ← Back to countries
+                {t('language.backToCountries')}
               </button>
             </>
           )}

@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { supabase } from '../../supabase/client'
 import LocationFields from './LocationFields'
+import { useLanguage } from '../../language/LanguageProvider'
 
 export default function LocationModal({ onClose }) {
+  const { t } = useLanguage()
   const [country, setCountry] = useState(localStorage.getItem('poetry_country') || '')
   const [state, setState] = useState(localStorage.getItem('poetry_state') || '')
   const [zip, setZip] = useState(localStorage.getItem('poetry_zip') || '')
@@ -10,9 +12,9 @@ export default function LocationModal({ onClose }) {
   const [busy, setBusy] = useState(false)
 
   async function handleSave() {
-    if (!country.trim()) { setError('Select your country'); return }
-    if (!zip.trim()) { setError('ZIP / Postal code is required for Blend'); return }
-    if (!state.trim()) { setError('State is missing — check your PIN code or enter it manually'); return }
+    if (!country.trim()) { setError(t('location.selectCountry')); return }
+    if (!zip.trim()) { setError(t('location.zipRequired')); return }
+    if (!state.trim()) { setError(t('location.stateMissing')); return }
     setBusy(true)
     localStorage.setItem('poetry_country', country)
     localStorage.setItem('poetry_state', state)
@@ -43,9 +45,9 @@ export default function LocationModal({ onClose }) {
         }}>
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-lg font-bold" style={{ color: 'var(--tp-text)', fontFamily: '"Playfair Display", Georgia, serif' }}>
-            Your Location
+            {t('location.title')}
           </h2>
-          <button onClick={onClose} className="p-1.5 rounded-xl transition-colors hover:opacity-70" style={{ color: 'var(--tp-text-secondary)' }}>
+          <button onClick={onClose} className="p-1.5 rounded-xl transition-colors hover:opacity-70" style={{ color: 'var(--tp-text-secondary)' }} aria-label={t('common.close')}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <path d="M18 6L6 18M6 6l12 12" />
             </svg>
@@ -53,7 +55,7 @@ export default function LocationModal({ onClose }) {
         </div>
 
         <p className="text-sm mb-5" style={{ color: 'var(--tp-text-secondary)' }}>
-          Add your location so Blend can connect you with nearby readers. Your ZIP / Postal code is required and your state will be detected automatically.
+          {t('location.intro')}
         </p>
 
         <LocationFields
@@ -67,7 +69,7 @@ export default function LocationModal({ onClose }) {
         <button onClick={handleSave} disabled={busy}
           className="w-full mt-5 py-2.5 text-sm font-semibold text-white transition-all duration-200 hover:brightness-110 active:scale-[0.98]"
           style={{ backgroundColor: 'var(--tp-secondary)', borderRadius: 'var(--tp-btn-radius, 0.75rem)' }}>
-          {busy ? 'Saving...' : 'Save'}
+          {busy ? t('location.saving') : t('common.save')}
         </button>
       </div>
     </div>

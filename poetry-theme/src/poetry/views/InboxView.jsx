@@ -1,11 +1,12 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { useBook } from '../contexts/BookContext'
 import { useAuth } from '../../auth/AuthContext'
+import { useLanguage } from '../../language/LanguageProvider'
 import { contactLabel } from '../components/PeerRequestCard'
 
-function fmtTime(ts) {
+function fmtTime(ts, lang) {
   try {
-    return new Date(ts).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+    return new Date(ts).toLocaleString(lang || 'en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
   } catch {
     return ''
   }
@@ -14,6 +15,7 @@ function fmtTime(ts) {
 export default function InboxView({ onNavigate, openContact, onOpenContact }) {
   const { inbox, markRead, sendMessage, respondToRequest, confirmReceived, addNotif } = useBook()
   const { user } = useAuth()
+  const { t, lang } = useLanguage()
   const me = user?.username || ''
   const [replyMsg, setReplyMsg] = useState('')
   const [dismissedReceived, setDismissedReceived] = useState(() => new Set())
@@ -73,7 +75,7 @@ export default function InboxView({ onNavigate, openContact, onOpenContact }) {
     const thread = openConv.messages
     const bookTitle = thread[thread.length - 1]?.bookTitle || ''
     sendMessage(openConv.contact, bookTitle, replyMsg.trim())
-    addNotif(`Reply sent to ${contactLabel(inbox, me, openConv.contact)}`)
+    addNotif(t('inbox.replySent', { contact: contactLabel(inbox, me, openConv.contact) }))
     setReplyMsg('')
   }
 
@@ -86,8 +88,8 @@ export default function InboxView({ onNavigate, openContact, onOpenContact }) {
       agree,
     })
     addNotif(agree
-      ? `You agreed to share "${pendingRequest.bookTitle}" with ${contactLabel(inbox, me, openConv.contact)}`
-      : `You declined sharing "${pendingRequest.bookTitle}"`)
+      ? t('inbox.agreedShare', { title: pendingRequest.bookTitle, contact: contactLabel(inbox, me, openConv.contact) })
+      : t('inbox.declinedShare', { title: pendingRequest.bookTitle }))
   }
 
   function handleReceivedConfirm(received) {
@@ -98,15 +100,15 @@ export default function InboxView({ onNavigate, openContact, onOpenContact }) {
         bookTitle: pendingReceived.bookTitle,
         author: msgAuthor(pendingReceived.requestId),
       })
-      addNotif(`"${pendingReceived.bookTitle}" added to your shelf`)
+      addNotif(t('inbox.addedToShelf', { title: pendingReceived.bookTitle }))
     } else {
       setDismissedReceived((prev) => {
         const next = new Set(prev)
         next.add(pendingReceived.requestId)
         return next
       })
-      sendMessage(openConv.contact, pendingReceived.bookTitle, 'Not yet received.')
-      addNotif('Marked as not received yet')
+      sendMessage(openConv.contact, pendingReceived.bookTitle, t('inbox.notYetReceived'))
+      addNotif(t('inbox.markedNotReceived'))
     }
   }
 
@@ -120,7 +122,7 @@ export default function InboxView({ onNavigate, openContact, onOpenContact }) {
         </svg>
       </button>
       <h2 className="text-xl font-bold" style={{ color: 'var(--tp-text)', fontFamily: '"Playfair Display", Georgia, serif' }}>
-        Inbox
+        {t('nav.inbox')}
       </h2>
     </div>
   )
@@ -134,10 +136,10 @@ export default function InboxView({ onNavigate, openContact, onOpenContact }) {
             const mine = m.from === me
             const kind = m.kind || 'chat'
             const isYes = kind === 'share_yes' || kind === 'received_yes'
-            const label = kind === 'request' ? 'Book request'
-              : kind === 'share_yes' ? (mine ? 'Shared' : 'Shared with you')
-                : kind === 'share_no' ? 'Declined'
-                  : kind === 'received_yes' ? (mine ? 'Received' : 'Exchange complete')
+            const label = kind === 'request' ? t('inbox.bookRequest')
+              : kind === 'share_yes' ? (mine ? t('inbox.shared') : t('inbox.sharedWithYou'))
+                : kind === 'share_no' ? t('inbox.declined')
+                  : kind === 'received_yes' ? (mine ? t('inbox.received') : t('inbox.exchangeComplete'))
                     : m.bookTitle || ''
             const bubbleStyle = {
               backgroundColor: mine
@@ -152,7 +154,7 @@ export default function InboxView({ onNavigate, openContact, onOpenContact }) {
                 <div className={`max-w-[80%] rounded-xl px-3.5 py-2.5 ${kind !== 'chat' ? 'animate-pop-in' : ''}`} style={bubbleStyle}>
                   {label && <p className="text-[10px] font-semibold mb-0.5" style={{ opacity: 0.75 }}>{label}</p>}
                   <p className="text-sm leading-relaxed whitespace-pre-wrap">{m.message}</p>
-                  <p className="text-[10px] mt-1" style={{ opacity: 0.6 }}>{fmtTime(m.timestamp)}</p>
+                  <p className="text-[10px] mt-1" style={{ opacity: 0.6 }}>{fmtTime(m.timestamp, lang)}</p>
                 </div>
               </div>
             )
@@ -164,14 +166,14 @@ export default function InboxView({ onNavigate, openContact, onOpenContact }) {
           <div className="flex items-center gap-2 mb-3 p-3 rounded-xl animate-pop-in flex-shrink-0"
             style={{ backgroundColor: 'color-mix(in srgb, var(--tp-secondary) 10%, transparent)', border: '1px solid var(--tp-border)' }}>
             <span className="text-xs font-semibold flex-1" style={{ color: 'var(--tp-text-secondary)' }}>
-              {contactLabel(inbox, me, openConv.contact)} wants to borrow "{pendingRequest.bookTitle}". Would you like to share?
+              {t('inbox.sharePrompt', { contact: contactLabel(inbox, me, openConv.contact), title: pendingRequest.bookTitle })}
             </span>
             <button onClick={() => handleShareDecision(true)}
               className="px-4 py-1.5 rounded-xl text-xs font-medium text-white transition-all hover:brightness-110 active:scale-[0.97]"
-              style={{ backgroundColor: '#22c55e' }}>Yes</button>
+              style={{ backgroundColor: '#22c55e' }}>{t('common.yes')}</button>
             <button onClick={() => handleShareDecision(false)}
               className="px-4 py-1.5 rounded-xl text-xs font-medium transition-all hover:brightness-110 active:scale-[0.97]"
-              style={{ color: '#f87171', backgroundColor: 'color-mix(in srgb, #f87171 15%, transparent)', border: '1px solid color-mix(in srgb, #f87171 40%, transparent)' }}>No</button>
+              style={{ color: '#f87171', backgroundColor: 'color-mix(in srgb, #f87171 15%, transparent)', border: '1px solid color-mix(in srgb, #f87171 40%, transparent)' }}>{t('common.no')}</button>
           </div>
         )}
 
@@ -179,14 +181,14 @@ export default function InboxView({ onNavigate, openContact, onOpenContact }) {
           <div className="flex items-center gap-2 mb-3 p-3 rounded-xl animate-pop-in flex-shrink-0"
             style={{ backgroundColor: 'color-mix(in srgb, #22c55e 10%, transparent)', border: '1px solid color-mix(in srgb, #22c55e 35%, transparent)' }}>
             <span className="text-xs font-semibold flex-1" style={{ color: 'var(--tp-text-secondary)' }}>
-              {contactLabel(inbox, me, openConv.contact)} shared "{pendingReceived.bookTitle}" with you. Did you receive it?
+              {t('inbox.receivePrompt', { contact: contactLabel(inbox, me, openConv.contact), title: pendingReceived.bookTitle })}
             </span>
             <button onClick={() => handleReceivedConfirm(true)}
               className="px-4 py-1.5 rounded-xl text-xs font-medium text-white transition-all hover:brightness-110 active:scale-[0.97]"
-              style={{ backgroundColor: '#22c55e' }}>Yes</button>
+              style={{ backgroundColor: '#22c55e' }}>{t('common.yes')}</button>
             <button onClick={() => handleReceivedConfirm(false)}
               className="px-4 py-1.5 rounded-xl text-xs font-medium transition-all hover:brightness-110 active:scale-[0.97]"
-              style={{ color: 'var(--tp-text-secondary)', backgroundColor: 'color-mix(in srgb, var(--tp-text-secondary) 12%, transparent)', border: '1px solid var(--tp-border)' }}>Not yet</button>
+              style={{ color: 'var(--tp-text-secondary)', backgroundColor: 'color-mix(in srgb, var(--tp-text-secondary) 12%, transparent)', border: '1px solid var(--tp-border)' }}>{t('common.notYet')}</button>
           </div>
         )}
 
@@ -195,10 +197,10 @@ export default function InboxView({ onNavigate, openContact, onOpenContact }) {
             value={replyMsg}
             onChange={(e) => setReplyMsg(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleSendReply() } }}
-            placeholder="Message..."
+            placeholder={t('inbox.messagePlaceholder')}
             className="flex-1 px-4 py-2.5 rounded-full text-sm outline-none transition-colors"
             style={{ backgroundColor: 'var(--tp-bg)', color: 'var(--tp-text)', border: '1.5px solid var(--tp-border)' }} />
-          <button onClick={handleSendReply} disabled={!replyMsg.trim()} aria-label="Send"
+          <button onClick={handleSendReply} disabled={!replyMsg.trim()} aria-label={t('common.send')}
             className="p-2.5 rounded-full text-white transition-all hover:brightness-110 active:scale-95 disabled:opacity-40 flex-shrink-0"
             style={{ backgroundColor: 'var(--tp-secondary)' }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -217,9 +219,9 @@ export default function InboxView({ onNavigate, openContact, onOpenContact }) {
 
       {conversations.length === 0 ? (
         <div className="rounded-xl p-8 text-center" style={{ backgroundColor: 'var(--tp-surface)', border: '1.5px dashed var(--tp-border)' }}>
-          <p className="text-sm" style={{ color: 'var(--tp-text-secondary)' }}>No conversations yet.</p>
+          <p className="text-sm" style={{ color: 'var(--tp-text-secondary)' }}>{t('inbox.empty')}</p>
           <p className="text-xs mt-2" style={{ color: 'var(--tp-text-secondary)', opacity: 0.7 }}>
-            Request a book through Blend to start a conversation.
+            {t('inbox.emptyHint')}
           </p>
         </div>
       ) : (
@@ -245,7 +247,7 @@ export default function InboxView({ onNavigate, openContact, onOpenContact }) {
                     </p>
                   </div>
                   <span className="text-[10px] flex-shrink-0" style={{ color: 'var(--tp-text-secondary)', opacity: 0.6 }}>
-                    {fmtTime(last.timestamp)}
+                    {fmtTime(last.timestamp, lang)}
                   </span>
                 </div>
               </div>

@@ -3,6 +3,7 @@ import { useAuth } from '../../auth/AuthContext'
 import { useSyncedState } from './useSyncedState'
 import { apiSyncShelfBooks } from '../../api/shelfBooks'
 import { supabase } from '../../supabase/client'
+import { translate } from '../../language/translator'
 import {
   apiResolveUser, apiSendMessage, apiFetchMessages, apiMarkMessageRead, toClientMessage,
 } from '../../api/messages'
@@ -109,7 +110,7 @@ export function BookProvider({ children }) {
   }, [])
 
   const persistMessage = useCallback(async (to, fields) => {
-    const from = user?.username || 'Anonymous'
+    const from = user?.username || translate('common.anonymous')
     const msg = {
       id: Date.now(),
       from,
@@ -167,8 +168,8 @@ export function BookProvider({ children }) {
   const respondToRequest = useCallback((to, { requestId, bookTitle, author = '', agree }) => {
     if (agree) markSentByTitle(bookTitle)
     const message = agree
-      ? `Yes, I can share "${bookTitle}" — I'm sending it to you.`
-      : `Sorry, I can't share "${bookTitle}" right now.`
+      ? translate('msg.shareAgree', { title: bookTitle })
+      : translate('msg.shareDecline', { title: bookTitle })
     return persistMessage(to, {
       bookTitle, author, message,
       kind: agree ? 'share_yes' : 'share_no', requestId,
@@ -179,7 +180,7 @@ export function BookProvider({ children }) {
     addBook({ title: bookTitle, author }, { received: true })
     return persistMessage(to, {
       bookTitle, author,
-      message: `I received "${bookTitle}". Thank you!`,
+      message: translate('msg.receivedConfirm', { title: bookTitle }),
       kind: 'received_yes', requestId,
     })
   }, [persistMessage, addBook])

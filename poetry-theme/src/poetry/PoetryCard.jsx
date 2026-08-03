@@ -1,4 +1,5 @@
 import { usePoetry } from './PoetryContext'
+import { useLanguage } from '../language/LanguageProvider'
 import { SparkleIcon } from './components/Icons'
 import { isIndependentPoem } from '../constants'
 
@@ -8,6 +9,7 @@ export default function PoetryCard() {
     canSwipeLeft, canSwipeRight, openFullscreen,
     toggleLikePoem, hasLiked,
   } = usePoetry()
+  const { t } = useLanguage()
 
   const poem = queue[index] || null
 
@@ -15,7 +17,7 @@ export default function PoetryCard() {
     return (
       <div className="flex items-center justify-center h-48 rounded-xl"
         style={{ backgroundColor: 'var(--tp-surface)', border: '1.5px dashed var(--tp-border)' }}>
-        <p className="flex items-center gap-1.5" style={{ color: 'var(--tp-text-secondary)' }}><SparkleIcon size={14} /> No more poems</p>
+        <p className="flex items-center gap-1.5" style={{ color: 'var(--tp-text-secondary)' }}><SparkleIcon size={14} /> {t('poetry.noMorePoems')}</p>
       </div>
     )
   }
@@ -53,7 +55,7 @@ export default function PoetryCard() {
           style={{ color: 'var(--tp-text-secondary)', fontFamily: '"Inter", system-ui, sans-serif' }}>
           {poem.content.split('\n').slice(0, 5).join('\n')}
         </p>
-        <p className="text-xs mt-1.5 italic" style={{ color: 'var(--tp-muted, #94a3b8)' }}>Tap to read full poem →</p>
+        <p className="text-xs mt-1.5 italic" style={{ color: 'var(--tp-muted, #94a3b8)' }}>{t('poetry.tapToRead')}</p>
       </div>
       <div className="px-5 pb-4 flex items-center justify-between border-t" style={{ borderColor: 'var(--tp-border)' }}>
         <div className="flex items-center gap-1.5">
@@ -70,7 +72,7 @@ export default function PoetryCard() {
             </button>
           ) : (
             <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ backgroundColor: 'color-mix(in srgb, var(--tp-text-secondary) 12%, transparent)', color: 'var(--tp-text-secondary)' }}>
-              Historic
+              {t('poetry.historic')}
             </span>
           )}
         </div>

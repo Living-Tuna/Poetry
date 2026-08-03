@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react'
+import { useLanguage } from '../../language/LanguageProvider'
 import ShareQuoteModal from '../components/ShareQuoteModal'
 
 const PAGE_SIZE = 5
 
 export default function FavoritesView({ favorites, onNavigate, onClearFavorites, focusFavorite }) {
+  const { t, lang } = useLanguage()
   const [shareTarget, setShareTarget] = useState(null)
   const [page, setPage] = useState(1)
 
@@ -18,7 +20,6 @@ export default function FavoritesView({ favorites, onNavigate, onClearFavorites,
 
   useEffect(() => {
     if (focusFavorite && favorites.some((f) => f.key === focusFavorite.key)) {
-      console.log('[FavoritesView] focusFavorite → opening preview', focusFavorite.key, focusFavorite.poemTitle)
       setShareTarget(focusFavorite)
     }
   }, [focusFavorite, favorites])
@@ -35,23 +36,23 @@ export default function FavoritesView({ favorites, onNavigate, onClearFavorites,
             </svg>
           </button>
           <h2 className="text-xl font-bold" style={{ color: 'var(--tp-text)', fontFamily: '"Playfair Display", Georgia, serif' }}>
-            Favorite Lines
+            {t('profile.favoriteLines')}
           </h2>
         </div>
         {favorites.length > 0 && (
           <button onClick={onClearFavorites}
             className="text-xs px-3 py-1.5 rounded-lg font-medium transition-all hover:opacity-70"
             style={{ color: '#fca5a5', backgroundColor: 'color-mix(in srgb, #fca5a5 15%, transparent)' }}>
-            Clear all
+            {t('favorites.clearAll')}
           </button>
         )}
       </div>
 
       {favorites.length === 0 ? (
         <div className="rounded-xl p-8 text-center" style={{ backgroundColor: 'var(--tp-surface)', border: '1.5px dashed var(--tp-border)' }}>
-          <p className="text-sm" style={{ color: 'var(--tp-text-secondary)' }}>No favorite lines yet.</p>
+          <p className="text-sm" style={{ color: 'var(--tp-text-secondary)' }}>{t('favorites.empty')}</p>
           <p className="text-xs mt-2" style={{ color: 'var(--tp-text-secondary)' }}>
-            Triple-tap a line while reading to save it as a favorite.
+            {t('favorites.hint')}
           </p>
         </div>
       ) : (
@@ -68,17 +69,17 @@ export default function FavoritesView({ favorites, onNavigate, onClearFavorites,
                   </p>
                   <div className="flex items-center justify-between mt-2">
                     <p className="text-xs" style={{ color: 'var(--tp-text-secondary)' }}>
-                      — {f.poemTitle} by {f.author}
+                      {t('favorites.attribution', { poem: f.poemTitle, author: f.author })}
                     </p>
                     <span className="text-[10px]" style={{ color: 'var(--tp-text-secondary)' }}>
-                      {new Date(f.date).toLocaleDateString()}
+                      {new Date(f.date).toLocaleDateString(lang || 'en-US')}
                     </span>
                   </div>
                 </div>
                 <button onClick={(e) => { e.stopPropagation(); setShareTarget(f) }}
                   className="p-2 rounded-xl flex-shrink-0 transition-all hover:scale-110 active:scale-90"
                   style={{ color: 'var(--tp-secondary)' }}
-                  aria-label="Share this quote">
+                  aria-label={t('favorites.shareQuote')}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
                     <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
@@ -97,18 +98,18 @@ export default function FavoritesView({ favorites, onNavigate, onClearFavorites,
             disabled={safePage <= 1}
             className="p-2 rounded-xl transition-all hover:scale-110 active:scale-90 disabled:opacity-30 disabled:pointer-events-none"
             style={{ color: 'var(--tp-secondary)', backgroundColor: 'color-mix(in srgb, var(--tp-secondary) 12%, transparent)' }}
-            aria-label="Previous page">
+            aria-label={t('favorites.previousPage')}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M15 18l-6-6 6-6" /></svg>
           </button>
           <span className="text-xs font-medium" style={{ color: 'var(--tp-text-secondary)' }}>
-            Page {safePage} of {pageCount}
+            {t('favorites.pageOf', { page: safePage, count: pageCount })}
           </span>
           <button
             onClick={() => setPage(safePage + 1)}
             disabled={safePage >= pageCount}
             className="p-2 rounded-xl transition-all hover:scale-110 active:scale-90 disabled:opacity-30 disabled:pointer-events-none"
             style={{ color: 'var(--tp-secondary)', backgroundColor: 'color-mix(in srgb, var(--tp-secondary) 12%, transparent)' }}
-            aria-label="Next page">
+            aria-label={t('favorites.nextPage')}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M9 18l6-6-6-6" /></svg>
           </button>
         </div>

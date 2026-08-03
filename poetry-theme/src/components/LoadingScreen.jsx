@@ -6,7 +6,7 @@ export default function LoadingScreen({ text }) {
       <div className="flex flex-col items-center gap-3">
         <img
           src={iconGif}
-          alt="Loading"
+          alt={text || ''}
           className="w-16 h-16 md:w-20 md:h-20"
           style={{ objectFit: 'contain' }}
         />

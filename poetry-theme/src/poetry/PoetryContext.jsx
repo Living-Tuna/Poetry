@@ -1,10 +1,12 @@
 import { createContext, useContext, useState, useCallback, useMemo, useRef, useEffect } from 'react'
 import { useAuth } from '../auth/AuthContext'
+import { useLanguage } from '../language/LanguageProvider'
 import { apiFetchAllPoems, apiAddPoem, apiUpdatePoem, apiDeletePoem, apiSetPoemLike } from '../api/poems'
 import { apiFetchUserPoems } from '../api/profile'
 import { computeStreak, bumpFrequently, pushRecent, apiSaveReadingStats } from '../api/reading'
 import { useSyncedState } from './contexts/useSyncedState'
 import { isIndependentPoem } from '../constants'
+import { getTodaysArticles } from '../constants/seedArticles'
 
 const MY_POEMS_KEY = 'poetry-my-poems'
 const RECENT_KEY = 'poetry-recently-viewed'
@@ -44,8 +46,12 @@ export function PoetryProvider({ children }) {
   const likedRef = useRef(new Set(likedPoems))
   const loadedIds = useRef(new Set())
   const allRef = useRef([])
-  const [lang, setLang] = useState(() => localStorage.getItem('poetry_lang') || 'en')
+  const { lang, setLang } = useLanguage()
   const langRef = useRef(lang)
+
+  useEffect(() => {
+    langRef.current = lang
+  }, [lang])
   const [reading, setReading] = useState(null)
   const readingRef = useRef(null)
   const saveReadingRef = useRef(null)
@@ -92,11 +98,14 @@ export function PoetryProvider({ children }) {
   }, [user])
 
   const poemsForLang = useCallback((code) => {
-    return allRef.current.filter((p) => (p.language || 'en') === code)
+    let poems = allRef.current.filter((p) => (p.language || 'en') === code)
+    if (poems.length === 0) poems = allRef.current.filter((p) => (p.language || 'en') === 'en')
+    return poems
   }, [])
 
   const seedQueue = useCallback(() => {
-    const poems = poemsForLang(langRef.current)
+    let poems = poemsForLang(langRef.current)
+    if (poems.length === 0) poems = getTodaysArticles(langRef.current)
     if (poems.length > 0) {
       const maxStart = Math.max(0, poems.length - 3)
       const start = Math.min(Math.floor(Math.random() * maxStart), maxStart)
@@ -109,15 +118,19 @@ export function PoetryProvider({ children }) {
   useEffect(() => {
     let cancelled = false
     async function load() {
+      let data = null
       try {
-        const data = await apiFetchAllPoems()
-        if (cancelled) return
-        setAllPoems(data)
-        allRef.current = data
-        seedQueue()
+        data = await apiFetchAllPoems()
       } catch (err) {
         console.error('Failed to load poems from Supabase:', err)
       }
+      if (cancelled) return
+      if (!data || data.length === 0) {
+        data = getTodaysArticles(langRef.current)
+      }
+      setAllPoems(data)
+      allRef.current = data
+      seedQueue()
       if (!cancelled) setLoading(false)
     }
     load()

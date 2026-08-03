@@ -1,4 +1,5 @@
 import { PenIcon, StarIcon } from './Icons'
+import { useLanguage } from '../../language/LanguageProvider'
 
 function MenuBtn({ icon, label, onClick, subtle, danger }) {
   return (
@@ -34,6 +35,7 @@ function NavCardBtn({ icon, label, subtext, onClick, badge }) {
 import logs from '../../logs'
 
 export default function MenuModal({ open, onClose, onSettings, onWriteNow, onFavorites, onNavigate, onCategories, onChangelog, favoritesCount, categoryCount, user, inboxLatest, unreadCount, shelfCount }) {
+  const { t } = useLanguage()
   return (
     <div className="fixed inset-0 z-40"
       onClick={onClose}
@@ -52,7 +54,7 @@ export default function MenuModal({ open, onClose, onSettings, onWriteNow, onFav
           transition: 'transform 0.3s cubic-bezier(0.22, 1, 0.36, 1)',
         }}>
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-bold" style={{ color: 'var(--tp-text)', fontFamily: '"Playfair Display", serif' }}>Menu</h3>
+          <h3 className="text-sm font-bold" style={{ color: 'var(--tp-text)', fontFamily: '"Playfair Display", serif' }}>{t('nav.menu')}</h3>
         </div>
 
         {/* Rounded card with Shelf, Blend, Inbox */}
@@ -61,19 +63,19 @@ export default function MenuModal({ open, onClose, onSettings, onWriteNow, onFav
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
             </svg>
-          } label="My Shelf" subtext={shelfCount > 0 ? `${shelfCount} book${shelfCount > 1 ? 's' : ''}` : 'add your books'}
+          } label={t('nav.shelf')} subtext={shelfCount > 0 ? `${shelfCount} ${t(shelfCount === 1 ? 'common.book' : 'common.books')}` : t('nav.addYourBooks')}
             onClick={() => { onNavigate('shelf'); onClose() }} />
           <NavCardBtn icon={
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
             </svg>
-          } label="Blend" subtext="find your book"
+          } label={t('nav.blend')} subtext={t('nav.findYourBook')}
             onClick={() => { onNavigate('blend'); onClose() }} />
           <NavCardBtn icon={
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
             </svg>
-          } label="Inbox" subtext={inboxLatest || 'latest messages'} badge={unreadCount}
+          } label={t('nav.inbox')} subtext={inboxLatest || t('nav.latestMessages')} badge={unreadCount}
             onClick={() => { onNavigate('inbox'); onClose() }} />
         </div>
 
@@ -82,26 +84,26 @@ export default function MenuModal({ open, onClose, onSettings, onWriteNow, onFav
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M3 10.5 12 3l9 7.5" /><path d="M5 9.5V21h14V9.5" />
             </svg>
-          } label="Home" onClick={() => { onNavigate('dashboard'); onClose() }} />
+          } label={t('nav.home')} onClick={() => { onNavigate('dashboard'); onClose() }} />
           {user && (
             <MenuBtn icon={
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 <path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
               </svg>
-            } label="My Writings" onClick={() => { onNavigate('my-writings'); onClose() }} />
+            } label={t('nav.writings')} onClick={() => { onNavigate('my-writings'); onClose() }} />
           )}
           <MenuBtn icon={
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <path d="M12 5v14M5 12h14" />
             </svg>
-          } label="Write New" onClick={onWriteNow} />
-          <MenuBtn icon={<StarIcon size={16} />} label={`Favorites (${favoritesCount})`}
+          } label={t('nav.writeNew')} onClick={onWriteNow} />
+          <MenuBtn icon={<StarIcon size={16} />} label={`${t('profile.favorites')} (${favoritesCount})`}
             onClick={() => { onNavigate('favorites'); onClose() }} />
           <MenuBtn icon={
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" />
             </svg>
-          } label={`Categories (${categoryCount})`} onClick={onCategories} />
+          } label={`${t('nav.categories')} (${categoryCount})`} onClick={onCategories} />
         </div>
 
         <div className="mt-4 pt-4" style={{ borderTop: '1px solid var(--tp-border)' }}>
@@ -110,7 +112,7 @@ export default function MenuModal({ open, onClose, onSettings, onWriteNow, onFav
               <circle cx="12" cy="12" r="3" />
               <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
             </svg>
-          } label="Settings" onClick={onSettings} />
+          } label={t('nav.settings')} onClick={onSettings} />
         </div>
 
         <div className="mt-auto pt-4 space-y-0.5" style={{ borderTop: '1px solid var(--tp-border)' }}>
@@ -118,28 +120,28 @@ export default function MenuModal({ open, onClose, onSettings, onWriteNow, onFav
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
             </svg>
-          } label="Terms" onClick={() => { onNavigate('terms'); onClose() }} subtle />
+          } label={t('nav.terms')} onClick={() => { onNavigate('terms'); onClose() }} subtle />
           <MenuBtn icon={
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
             </svg>
-          } label="Privacy Policy" onClick={() => { onNavigate('privacy'); onClose() }} subtle />
+          } label={t('nav.privacy')} onClick={() => { onNavigate('privacy'); onClose() }} subtle />
           <MenuBtn icon={
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <circle cx="12" cy="12" r="10" /><path d="M12 16v-4M12 8h.01" />
             </svg>
-          } label="About" onClick={() => { onNavigate('about'); onClose() }} subtle />
+          } label={t('nav.about')} onClick={() => { onNavigate('about'); onClose() }} subtle />
           <MenuBtn icon={
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <polyline points="12 8 8 12 12 16" /><polyline points="16 8 12 12 16 16" />
             </svg>
-          } label={<span>Changelog <span className="text-[10px] font-normal" style={{ color: 'var(--tp-text-secondary)' }}>v{logs[0].versionCode}</span></span>}
+          } label={<span>{t('nav.changelog')} <span className="text-[10px] font-normal" style={{ color: 'var(--tp-text-secondary)' }}>v{logs[0].versionCode}</span></span>}
             onClick={() => { onChangelog(); onClose() }} subtle />
           <MenuBtn icon={
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <path d="M18 6L6 18M6 6l12 12" />
             </svg>
-          } label="Close" onClick={onClose} subtle />
+          } label={t('common.close')} onClick={onClose} subtle />
         </div>
       </div>
     </div>

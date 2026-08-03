@@ -1,4 +1,5 @@
 import DataIndicator from './DataIndicator'
+import { useLanguage } from '../../language/LanguageProvider'
 
 function ProfileNavItem({ icon, label, onClick }) {
   return (
@@ -11,11 +12,12 @@ function ProfileNavItem({ icon, label, onClick }) {
 }
 
 export default function CompactProfile({ user, myPoems, favorites, myPoemsCachedOnly, onNavigate, onClose, onLogout, shelfCount, inboxUnread, unreadCount, streak }) {
+  const { t } = useLanguage()
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-lg font-bold" style={{ fontFamily: '"Playfair Display", Georgia, serif' }}>Profile</h2>
-        <button onClick={onClose} className="p-1.5 rounded-lg transition-opacity hover:opacity-70" style={{ color: 'var(--tp-header-text)' }} aria-label="Close">
+        <h2 className="text-lg font-bold" style={{ fontFamily: '"Playfair Display", Georgia, serif' }}>{t('profile.title')}</h2>
+        <button onClick={onClose} className="p-1.5 rounded-lg transition-opacity hover:opacity-70" style={{ color: 'var(--tp-header-text)' }} aria-label={t('common.close')}>
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
         </button>
       </div>
@@ -32,19 +34,19 @@ export default function CompactProfile({ user, myPoems, favorites, myPoemsCached
       <div className="flex justify-center gap-8 mb-5">
         <div className="text-center">
           <p className={`text-lg font-bold ${myPoems.length > 0 ? '' : 'opacity-50'}`}>{myPoems.length}</p>
-          <p className="text-xs" style={{ color: 'rgba(255,255,255,0.6)' }}>Writings</p>
+          <p className="text-xs" style={{ color: 'rgba(255,255,255,0.6)' }}>{t('profile.writings')}</p>
         </div>
         <div className="text-center">
           <p className={`text-lg font-bold ${favorites.length > 0 ? '' : 'opacity-50'}`}>{favorites.length}</p>
-          <p className="text-xs" style={{ color: 'rgba(255,255,255,0.6)' }}>Favorites</p>
+          <p className="text-xs" style={{ color: 'rgba(255,255,255,0.6)' }}>{t('profile.favorites')}</p>
         </div>
         <div className="text-center">
           <p className={`text-lg font-bold ${shelfCount > 0 ? '' : 'opacity-50'}`}>{shelfCount}</p>
-          <p className="text-xs" style={{ color: 'rgba(255,255,255,0.6)' }}>Shelf</p>
+          <p className="text-xs" style={{ color: 'rgba(255,255,255,0.6)' }}>{t('profile.shelf')}</p>
         </div>
         <div className="text-center">
           <p className={`text-lg font-bold ${streak > 0 ? '' : 'opacity-50'}`}>{streak}</p>
-          <p className="text-xs" style={{ color: 'rgba(255,255,255,0.6)' }}>Streak</p>
+          <p className="text-xs" style={{ color: 'rgba(255,255,255,0.6)' }}>{t('profile.streak')}</p>
         </div>
       </div>
 
@@ -53,34 +55,34 @@ export default function CompactProfile({ user, myPoems, favorites, myPoemsCached
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
             <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
           </svg>
-        } label={<span className="flex items-center gap-1.5">My Shelf <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.4)' }}>({shelfCount > 0 ? `${shelfCount} books` : 'add your books'})</span></span>}
+        } label={<span className="flex items-center gap-1.5">{t('nav.shelf')} <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.4)' }}>{shelfCount > 0 ? t('profile.shelfBooks', { count: shelfCount }) : t('nav.addYourBooks')}</span></span>}
           onClick={() => { onNavigate('shelf'); onClose() }} />
         <ProfileNavItem icon={
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
             <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
           </svg>
-        } label={<span className="flex items-center gap-1.5">Blend <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.4)' }}>(find your book)</span></span>}
+        } label={<span className="flex items-center gap-1.5">{t('nav.blend')} <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.4)' }}>{t('nav.findYourBook')}</span></span>}
           onClick={() => { onNavigate('blend'); onClose() }} />
         <ProfileNavItem icon={
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
           </svg>
-        } label={<span className="flex items-center gap-1.5">Inbox {inboxUnread > 0 && <span className="text-[10px] px-1 py-0.5 rounded-full text-white" style={{ backgroundColor: 'var(--tp-secondary)' }}>{inboxUnread}</span>}</span>}
+        } label={<span className="flex items-center gap-1.5">{t('nav.inbox')} {inboxUnread > 0 && <span className="text-[10px] px-1 py-0.5 rounded-full text-white" style={{ backgroundColor: 'var(--tp-secondary)' }}>{inboxUnread}</span>}</span>}
           onClick={() => { onNavigate('inbox'); onClose() }} />
       </div>
 
       <div className="space-y-1 mb-4">
         <ProfileNavItem icon={
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" /></svg>
-        } label={<span className="flex items-center gap-1.5">My Writings ({myPoems.length}) <DataIndicator cachedOnly={myPoemsCachedOnly} size={10} /></span>}
+        } label={<span className="flex items-center gap-1.5">{t('profile.myWritingsCount', { count: myPoems.length })} <DataIndicator cachedOnly={myPoemsCachedOnly} size={10} /></span>}
           onClick={() => { onNavigate('my-writings'); onClose() }} />
         <ProfileNavItem icon={
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
-        } label={`Favorite Lines (${favorites.length})`}
+        } label={t('profile.favoriteLinesCount', { count: favorites.length })}
           onClick={() => { onNavigate('favorites'); onClose() }} />
         <ProfileNavItem icon={
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
-        } label={<span className="flex items-center gap-1.5">Notifications {unreadCount > 0 && <span className="text-[10px] px-1 py-0.5 rounded-full text-white" style={{ backgroundColor: 'var(--tp-secondary)' }}>{unreadCount}</span>}</span>}
+        } label={<span className="flex items-center gap-1.5">{t('profile.notifications')} {unreadCount > 0 && <span className="text-[10px] px-1 py-0.5 rounded-full text-white" style={{ backgroundColor: 'var(--tp-secondary)' }}>{unreadCount}</span>}</span>}
           onClick={() => { onNavigate('notifications'); onClose() }} />
       </div>
 
@@ -88,7 +90,7 @@ export default function CompactProfile({ user, myPoems, favorites, myPoemsCached
         width: '100%', padding: '0.625rem', borderRadius: '0.75rem',
         fontSize: '0.875rem', fontWeight: 600, border: 'none', cursor: 'pointer',
         backgroundColor: 'var(--tp-secondary)', color: '#fff',
-      }}>Sign Out</button>
+      }}>{t('auth.signOut')}</button>
     </div>
   )
 }

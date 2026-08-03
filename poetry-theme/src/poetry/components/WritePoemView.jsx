@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { getLanguageName } from '../../constants/languages'
+import { useLanguage } from '../../language/LanguageProvider'
 
 const CATEGORIES = ['Love', 'Nature', 'Philosophy', 'Tragedy', 'Hope', 'Spirituality', 'Freedom', 'War', 'Death', 'Joy', 'Reflection', 'Fantasy']
 
@@ -10,6 +11,7 @@ export default function WritePoemView({
   categories, onCategoriesChange,
   lang,
 }) {
+  const { t } = useLanguage()
   const contentRef = useRef(null)
   const onCloseRef = useRef(onClose)
 
@@ -60,7 +62,7 @@ export default function WritePoemView({
           onClick={onClose}
           className="p-1.5 rounded-xl transition-opacity hover:opacity-70"
           style={{ color: 'var(--tp-text-secondary)' }}
-          aria-label="Close"
+          aria-label={t('common.close')}
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
             <path d="M19 12H5M12 19l-7-7 7-7" />
@@ -69,7 +71,7 @@ export default function WritePoemView({
 
         <h2 className="text-sm sm:text-base font-bold truncate px-2"
           style={{ color: 'var(--tp-text)', fontFamily: '"Playfair Display", Georgia, serif' }}>
-          {editingPoem ? 'Edit Poem' : 'Write a Poem'}
+          {editingPoem ? t('writings.editPoem') : t('writings.writePoem')}
         </h2>
 
         <button
@@ -78,7 +80,7 @@ export default function WritePoemView({
           className="px-4 py-1.5 rounded-xl text-sm font-medium text-white transition-all disabled:opacity-30 disabled:cursor-not-allowed hover:opacity-80"
           style={{ backgroundColor: 'var(--tp-secondary)' }}
         >
-          {editingPoem ? 'Update' : 'Save'}
+          {editingPoem ? t('common.update') : t('common.save')}
         </button>
       </div>
 
@@ -88,7 +90,7 @@ export default function WritePoemView({
           <input
             value={title}
             onChange={(e) => onTitleChange(e.target.value)}
-            placeholder="Title your poem..."
+            placeholder={t('writings.titlePlaceholder')}
             className="w-full text-center text-2xl sm:text-3xl font-bold px-3 py-2 rounded-xl outline-none transition-colors"
             style={{
               color: 'var(--tp-text)',
@@ -107,7 +109,7 @@ export default function WritePoemView({
             ref={contentRef}
             value={content}
             onChange={(e) => onContentChange(e.target.value)}
-            placeholder="Write your poem here..."
+            placeholder={t('writings.contentPlaceholder')}
             rows={16}
             className="w-full mt-6 px-3 py-2 rounded-xl text-base outline-none resize-none transition-colors"
             style={{
@@ -129,7 +131,7 @@ export default function WritePoemView({
         style={{ borderTop: '1px solid var(--tp-border)', backgroundColor: 'var(--tp-bg)' }}
       >
         <p className="text-xs font-medium mb-2" style={{ color: 'var(--tp-text-secondary)' }}>
-          Categories (up to 3):
+          {t('writings.categoriesHint', { count: 3 })}
         </p>
         <div
           className="flex gap-1.5 overflow-x-auto pb-1"
@@ -146,7 +148,7 @@ export default function WritePoemView({
                   border: '1px solid var(--tp-border)',
                   opacity: !selected && categories.length >= 3 ? 0.4 : 1,
                 }}
-              >{cat}</button>
+              >{t('category.' + cat.toLowerCase())}</button>
             )
           })}
         </div>

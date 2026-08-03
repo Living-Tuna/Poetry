@@ -1,15 +1,16 @@
 import { useState } from 'react'
 import announcements from '../../announcement'
+import { useLanguage } from '../../language/LanguageProvider'
 
 const DISMISS_KEY = 'poetry_announcement_dismissed'
 
 const TYPE_META = {
-  logo:    { color: 'var(--tp-secondary)', label: 'Logo' },
-  announce: { color: '#3b82f6', label: 'Announcement' },
-  note:    { color: '#f59e0b', label: 'Note' },
-  error:   { color: '#ef4444', label: 'Error' },
-  bug:     { color: '#a855f7', label: 'Bug' },
-  fixed:   { color: '#22c55e', label: 'Fixed' },
+  logo:    { color: 'var(--tp-secondary)', labelKey: 'announcement.typeLogo' },
+  announce: { color: '#3b82f6', labelKey: 'announcement.typeAnnouncement' },
+  note:    { color: '#f59e0b', labelKey: 'announcement.typeNote' },
+  error:   { color: '#ef4444', labelKey: 'announcement.typeError' },
+  bug:     { color: '#a855f7', labelKey: 'announcement.typeBug' },
+  fixed:   { color: '#22c55e', labelKey: 'announcement.typeFixed' },
 }
 
 function TypeIcon({ type }) {
@@ -78,6 +79,7 @@ function saveDismissed(set) {
 }
 
 export default function AnnouncementBanner() {
+  const { t } = useLanguage()
   const [dismissed, setDismissed] = useState(loadDismissed)
   const [open, setOpen] = useState(false)
 
@@ -111,7 +113,7 @@ export default function AnnouncementBanner() {
           {active.heading}
         </span>
         <span className="text-[10px] font-semibold uppercase tracking-wide flex-shrink-0 hidden sm:block" style={{ color }}>
-          {meta.label}
+          {t(meta.labelKey)}
         </span>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
           className="flex-shrink-0 transition-transform duration-200"
@@ -130,7 +132,7 @@ export default function AnnouncementBanner() {
               onClick={handleDismiss}
               className="p-1 rounded-lg transition-colors hover:opacity-70 flex-shrink-0"
               style={{ color: 'var(--tp-text-secondary)' }}
-              aria-label="Close announcement"
+              aria-label={t('announcement.close')}
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 <path d="M18 6L6 18M6 6l12 12" />

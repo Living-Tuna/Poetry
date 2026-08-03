@@ -1,5 +1,17 @@
 const logs = [
   {
+    versionCode: '1.3.2',
+    date: 'August 2026',
+    features: [
+      'Tapping a line now marks the whole sentence, and tapping a marked sentence again removes the mark — the star count in the reader header stays accurate as you go',
+      'Swipe gestures no longer get stuck — a slightly tilted drag is now read as a swipe instead of jamming between sliding and scrolling',
+      'Announcements sit at the very top of the home screen, with your favorite line right below them',
+      'Home screen is reorganized — "Ready to share a book?", "Need a book?" and "Books Near You" now sit together just above the newsletter, and a new card jumps straight to your bookshelf',
+      'The bookshelf add button moved to the top of the shelf',
+      'A daily set of classic articles is always available — the reader never shows an empty screen, even when the library has no content yet',
+    ],
+  },
+  {
     versionCode: '1.3.1',
     date: 'August 2026',
     features: [

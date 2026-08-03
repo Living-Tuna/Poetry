@@ -2,8 +2,10 @@ import { useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import html2canvas from 'html2canvas'
 import { SITE_NAME, shareText } from '../../constants'
+import { useLanguage } from '../../language/LanguageProvider'
 
 export default function ShareQuoteModal({ favorite, favorites, initialIndex, onClose, inline = false }) {
+  const { t, lang } = useLanguage()
   const cardRef = useRef(null)
   const [busy, setBusy] = useState(false)
   const swipeStart = useRef(null)
@@ -22,7 +24,7 @@ export default function ShareQuoteModal({ favorite, favorites, initialIndex, onC
   const author = current.author
   const textLen = lineText.length
   const quoteFontSize = textLen < 40 ? '1.125rem' : textLen < 80 ? '1rem' : textLen < 120 ? '0.875rem' : '0.75rem'
-  const date = current.date ? new Date(current.date).toLocaleDateString('en-US', {
+  const date = current.date ? new Date(current.date).toLocaleDateString(lang || 'en-US', {
     year: 'numeric', month: 'long', day: 'numeric',
   }) : ''
 
@@ -69,7 +71,7 @@ export default function ShareQuoteModal({ favorite, favorites, initialIndex, onC
       const file = new File([blob], `poetry-${poemTitle.replace(/\s+/g, '-').toLowerCase()}.png`, { type: 'image/png' })
       await navigator.share({
         title: `"${lineText}"`,
-        text: `${shareText()} — "${lineText}" — ${poemTitle} by ${author}`,
+        text: `${shareText()} — "${lineText}" — ${poemTitle} ${t('common.byAuthor', { author })}`,
         files: [file],
       })
     } catch { }
@@ -131,7 +133,7 @@ export default function ShareQuoteModal({ favorite, favorites, initialIndex, onC
             {poemTitle}
           </p>
           <p className="text-xs mt-0.5" style={{ color: 'var(--tp-text-secondary)' }}>
-            by {author}
+            {t('common.byAuthor', { author })}
           </p>
           {date && (
             <p className="text-[10px] mt-1.5" style={{ color: 'var(--tp-text-secondary)', opacity: 0.6 }}>
@@ -148,7 +150,7 @@ export default function ShareQuoteModal({ favorite, favorites, initialIndex, onC
         <button onClick={handleShare} disabled={busy}
           className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium text-white transition-all hover:opacity-80 active:scale-95 disabled:opacity-50"
           style={{ backgroundColor: 'var(--tp-secondary)' }}>
-          {busy ? '⋯' : 'Share'}
+          {busy ? '⋯' : t('common.share')}
         </button>
         {!inline && (
           <button onClick={onClose}

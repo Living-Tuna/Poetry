@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import './index.css'
 import App from './App'
+import { LanguageProvider } from './language/LanguageProvider'
 import { ThemeProvider } from './theme/ThemeContext'
 import { AuthProvider } from './auth/AuthContext'
 import { PoetryProvider } from './poetry/PoetryContext'
@@ -13,15 +14,17 @@ const root = createRoot(document.getElementById('root'))
 root.render(
   <StrictMode>
     <BrowserRouter>
-      <ThemeProvider>
-        <AuthProvider>
-          <PoetryProvider>
-            <BookProvider>
-              <App />
-            </BookProvider>
-          </PoetryProvider>
-        </AuthProvider>
-      </ThemeProvider>
+      <LanguageProvider>
+        <ThemeProvider>
+          <AuthProvider>
+            <PoetryProvider>
+              <BookProvider>
+                <App />
+              </BookProvider>
+            </PoetryProvider>
+          </AuthProvider>
+        </ThemeProvider>
+      </LanguageProvider>
     </BrowserRouter>
   </StrictMode>,
 )
