@@ -112,6 +112,7 @@ export function PoetryProvider({ children }) {
       const slice = poems.slice(start, start + 3)
       loadedIds.current = new Set(slice.map((p) => p.id))
       setQueue(slice)
+      setIndex(0)
     }
   }, [poemsForLang])
 
@@ -226,7 +227,10 @@ export function PoetryProvider({ children }) {
     seedQueue()
   }, [seedQueue])
 
-  const openFullscreen = useCallback(() => setFullscreen(true), [])
+  const openFullscreen = useCallback(() => {
+    if (queue.length === 0) seedQueue()
+    setFullscreen(true)
+  }, [queue.length, seedQueue])
   const closeFullscreen = useCallback(() => setFullscreen(false), [])
 
   const navigateToPoem = useCallback((poem) => {

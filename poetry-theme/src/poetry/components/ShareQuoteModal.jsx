@@ -81,16 +81,25 @@ export default function ShareQuoteModal({ favorite, favorites, initialIndex, onC
   const card = (
     <>
       {list.length > 1 && (
-        <div className="flex items-center gap-1.5">
-          {list.map((_, i) => (
-            <span key={i}
-              className="rounded-full transition-all duration-300"
-              style={{
-                width: i === index ? '18px' : '6px',
-                height: '6px',
-                backgroundColor: i === index ? 'var(--tp-secondary)' : 'rgba(255,255,255,0.35)',
-              }} />
-          ))}
+        <div className="flex items-center justify-center flex-wrap gap-1.5 max-w-full px-2">
+          {list.map((_, i) => {
+            const show = list.length <= 12 || i === index || Math.abs(i - index) <= 1 || i === 0 || i === list.length - 1
+            const gap = list.length > 12 && i === index + 2 && index + 2 < list.length - 2
+            const gapStart = list.length > 12 && i === index - 2 && index - 2 > 1
+            if (gap || gapStart) {
+              return <span key={i} className="text-[9px] leading-none" style={{ color: 'rgba(255,255,255,0.35)' }}>…</span>
+            }
+            if (!show) return null
+            return (
+              <span key={i}
+                className="rounded-full transition-all duration-300 flex-shrink-0"
+                style={{
+                  width: i === index ? '18px' : '6px',
+                  height: '6px',
+                  backgroundColor: i === index ? 'var(--tp-secondary)' : 'rgba(255,255,255,0.35)',
+                }} />
+            )
+          })}
         </div>
       )}
 

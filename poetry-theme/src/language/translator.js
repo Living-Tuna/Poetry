@@ -15,7 +15,14 @@ export function getCurrentLang() {
 export function translate(key, vars) {
   const pkg = LANGUAGE_PACKAGES[currentLang]
   let str = (pkg && pkg[key]) || EN[key]
-  if (str == null) str = key
+  if (str == null) {
+    if (typeof key === 'string' && key.startsWith('category.')) {
+      const name = key.slice('category.'.length)
+      str = name ? name.replace(/(^|\s)\S/g, (m) => m.toUpperCase()) : key
+    } else {
+      str = key
+    }
+  }
   if (vars) {
     for (const [k, v] of Object.entries(vars)) {
       str = String(str).split(`{${k}}`).join(String(v == null ? '' : v))

@@ -17,8 +17,30 @@ function abbrev(n) {
   return (n / 1000000).toFixed(n < 10000000 ? 1 : 0).replace(/\.0$/, '') + 'm'
 }
 
-function endsSentence(text) {
-  return /[.!?…]["'”’)\]]*$/.test((text || '').trim())
+const BOUNDARY_RE = /[.!?…;:,–—-]+["'”’)\]…]*$/
+
+function splitLine(line) {
+  return (line || '').split(/\s+/).filter(Boolean)
+}
+
+function tokenIsBoundary(tok) {
+  return BOUNDARY_RE.test(tok || '')
+}
+
+function flatIndexOf(lines, li, wi) {
+  let idx = wi || 0
+  for (let k = 0; k < li; k++) idx += splitLine(lines[k]).length
+  return idx
+}
+
+function favFlatRange(f, lines) {
+  if (typeof f.startLine !== 'number' || typeof f.endLine !== 'number') return null
+  if (f.startLine < 0 || f.startLine >= lines.length) return null
+  if (f.endLine < f.startLine || f.endLine >= lines.length) return null
+  const startWi = typeof f.startWord === 'number' ? f.startWord : 0
+  const endLineWords = splitLine(lines[f.endLine]).length
+  const endWi = typeof f.endWord === 'number' ? f.endWord : Math.max(0, endLineWords - 1)
+  return [flatIndexOf(lines, f.startLine, startWi), flatIndexOf(lines, f.endLine, endWi)]
 }
 
 export default function FullscreenView() {
@@ -34,20 +56,23 @@ export default function FullscreenView() {
   } = usePoetry()
   const { t } = useLanguage()
 
-  function isLineFav(poemId, i) {
-    return favorites.some((f) =>
-      String(f.poemId) === String(poemId) &&
-      (typeof f.startLine === 'number' && typeof f.endLine === 'number'
-        ? i >= f.startLine && i <= f.endLine
-        : ((f.sentenceText || '').includes(lines[i]) || f.lineText === lines[i]))
-    )
-  }
-
   const userPoem = isUserPoem(currentPoem)
   const lines = currentPoem?.content?.split('\n')?.filter(Boolean) || []
+  const tokens = []
+  lines.forEach((line, li) => splitLine(line).forEach((tok, wi) => tokens.push({ tok, li, wi })))
   const markedCount = currentPoem
     ? favorites.filter((f) => String(f.poemId) === String(currentPoem.id)).length
     : 0
+
+  function isFlatCovered(li, wi) {
+    const flat = flatIndexOf(lines, li, wi)
+    return favorites.some((f) => {
+      if (String(f.poemId) !== String(currentPoem.id)) return false
+      const r = favFlatRange(f, lines)
+      if (r) return flat >= r[0] && flat <= r[1]
+      return (f.sentenceText || '').includes(lines[li] || '') || f.lineText === lines[li]
+    })
+  }
   const [editing, setEditing] = useState(editOnOpen && userPoem)
   const [editTitle, setEditTitle] = useState(editOnOpen && userPoem ? currentPoem.title : '')
   const [editContent, setEditContent] = useState(editOnOpen && userPoem ? currentPoem.content : '')
@@ -130,10 +155,12 @@ export default function FullscreenView() {
     if (e.target.closest('button, [role="button"], a')) return
     if (animating) return
     const lineEl = e.target.closest('[data-line]')
+    const wordEl = e.target.closest('[data-word]')
     dragStart.current = {
       x: e.clientX,
       y: e.clientY,
       line: lineEl ? Number(lineEl.dataset.line) : null,
+      word: wordEl ? Number(wordEl.dataset.word) : null,
     }
     axisLock.current = null
     dragTargetScroll.current = e.target.closest('.poem-scroll') || null
@@ -181,6 +208,7 @@ export default function FullscreenView() {
     const dx = e.clientX - dragStart.current.x
     const dy = e.clientY - dragStart.current.y
     const tappedLine = dragStart.current.line
+    const tappedWord = dragStart.current.word
     const wasHorizontal = axisLock.current === 'h'
     restoreScroll()
     setDragging(false)
@@ -189,7 +217,7 @@ export default function FullscreenView() {
 
     if (!wasHorizontal) {
       if (Math.abs(dx) <= TAP_THRESHOLD && Math.abs(dy) <= TAP_THRESHOLD) {
-        if (tappedLine !== null) toggleLineFavorite(tappedLine)
+        if (tappedLine !== null) toggleLineFavorite(tappedLine, tappedWord)
         return
       }
       if (dy > 60 && Math.abs(dy) > Math.abs(dx) * 1.5) {
@@ -227,45 +255,76 @@ export default function FullscreenView() {
     scrollRef.current.scrollTop = scrollPositions.current[currentPoem.id] || 0
   }, [currentPoem?.id, editing])
 
-  function toggleLineFavorite(i) {
+  function toggleLineFavorite(i, w) {
     if (!currentPoem) return
     const poemId = currentPoem.id
+    const flat = flatIndexOf(lines, i, w)
 
     const poemFavs = favorites
       .filter((f) => String(f.poemId) === String(poemId))
-      .map((f) => {
-        if (typeof f.startLine === 'number' && typeof f.endLine === 'number') {
-          return { f, range: [f.startLine, f.endLine] }
-        }
-        const idx = lines.indexOf(f.lineText)
-        return idx === -1 ? null : { f, range: [idx, idx] }
-      })
-      .filter(Boolean)
+      .map((f) => ({ f, range: favFlatRange(f, lines) }))
+      .filter((x) => x.range)
 
-    const covering = poemFavs.find(({ range }) => i >= range[0] && i <= range[1])
+    const covering = poemFavs.find(({ range }) => flat >= range[0] && flat <= range[1])
     if (covering) {
       removeFavorite(covering.f.key)
       return
     }
 
-    let lo = i
-    while (lo > 0 && !endsSentence(lines[lo - 1])) lo--
-    let hi = i
-    while (hi < lines.length - 1 && !endsSentence(lines[hi])) hi++
+    let lo = flat
+    while (lo > 0 && !tokenIsBoundary(tokens[lo - 1].tok)) lo--
+    let hi = flat
+    while (hi < tokens.length - 1 && !tokenIsBoundary(tokens[hi].tok)) hi++
+
+    // If a highlight was created within the last 30s and sits right next to this
+    // sentence, merge into it instead of creating a second highlight.
+    const NOW = Date.now()
+    const recent = poemFavs
+      .filter(({ f, range }) => {
+        const age = NOW - (f.date || 0)
+        if (age < 0 || age > 30000) return false
+        return range[1] >= lo - 1 && range[0] <= hi + 1
+      })
+      .sort((a, b) => (b.f.date || 0) - (a.f.date || 0))[0]
+
+    if (recent) {
+      const mergedLo = Math.min(lo, recent.range[0])
+      const mergedHi = Math.max(hi, recent.range[1])
+      poemFavs.forEach(({ f, range }) => {
+        if (range[0] > mergedHi || range[1] < mergedLo) return
+        if (f.key !== recent.f.key) removeFavorite(f.key)
+      })
+      const start = tokens[mergedLo]
+      const end = tokens[mergedHi]
+      upsertFavorite(poemId, {
+        ...recent.f,
+        lineText: lines[start.li],
+        sentenceText: tokens.slice(mergedLo, mergedHi + 1).map((tok) => tok.tok).join(' ').trim(),
+        startLine: start.li,
+        startWord: start.wi,
+        endLine: end.li,
+        endWord: end.wi,
+      })
+      return
+    }
 
     poemFavs.forEach(({ f, range }) => {
       if (range[0] > hi || range[1] < lo) return
       removeFavorite(f.key)
     })
 
-    const key = `${poemId}::${lines[lo]}`
-    const sentenceText = lines.slice(lo, hi + 1).join(' ').trim()
+    const start = tokens[lo]
+    const end = tokens[hi]
+    const key = `${poemId}::${start.li}:${start.wi}`
+    const sentenceText = tokens.slice(lo, hi + 1).map((tok) => tok.tok).join(' ').trim()
     upsertFavorite(poemId, {
       key,
-      lineText: lines[lo],
+      lineText: lines[start.li],
       sentenceText,
-      startLine: lo,
-      endLine: hi,
+      startLine: start.li,
+      startWord: start.wi,
+      endLine: end.li,
+      endWord: end.wi,
     })
   }
 
@@ -499,27 +558,36 @@ export default function FullscreenView() {
                 {/* Poem lines */}
                 <div className="space-y-0.5 select-none" style={{ WebkitUserSelect: 'none', userSelect: 'none', touchAction: 'pan-y' }}>
                   {lines.map((line, i) => {
-                    const fav = isLineFav(currentPoem.id, i)
-                    const bg = fav
-                      ? 'color-mix(in srgb, var(--tp-secondary) 12%, transparent)'
-                      : 'transparent'
+                    const words = splitLine(line)
                     return (
                       <p
                         key={i}
                         data-line={i}
                         className="leading-relaxed py-1.5 rounded-sm transition-all duration-200 cursor-pointer"
                         style={{
-                          color: fav ? 'var(--tp-secondary)' : 'var(--tp-text)',
                           fontSize: '1.05rem',
                           fontFamily: '"Playfair Display", Georgia, serif',
-                          backgroundColor: bg,
                           paddingLeft: '0.75rem',
                           paddingRight: '0.75rem',
-                          borderLeft: fav ? '3px solid var(--tp-secondary)' : '3px solid transparent',
-                          transform: fav ? 'scale(1.01)' : 'scale(1)',
                         }}
                       >
-                        {line}
+                        {words.map((tok, wi) => {
+                          const covered = isFlatCovered(i, wi)
+                          return (
+                            <span
+                              key={wi}
+                              data-word={wi}
+                              style={{
+                                backgroundColor: covered ? 'color-mix(in srgb, var(--tp-secondary) 12%, transparent)' : 'transparent',
+                                color: covered ? 'var(--tp-secondary)' : 'var(--tp-text)',
+                                borderRadius: '4px',
+                                padding: '1px 3px',
+                              }}
+                            >
+                              {tok}{wi < words.length - 1 ? ' ' : ''}
+                            </span>
+                          )
+                        })}
                       </p>
                     )
                   })}

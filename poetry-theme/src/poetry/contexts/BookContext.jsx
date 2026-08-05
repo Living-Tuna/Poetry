@@ -28,12 +28,26 @@ export function BookProvider({ children }) {
     return () => clearTimeout(t)
   }, [shelf, user?.id])
 
+  const notifyIncoming = useCallback((msg) => {
+    const me = user?.username || ''
+    if (msg.from === me) return
+    setNotifs((prev) => {
+      if (prev.some((n) => n.msgId === msg.id)) return prev
+      const kind = msg.kind || 'chat'
+      const text = kind === 'request'
+        ? translate('notifications.newRequest', { title: msg.bookTitle || '', from: msg.from })
+        : translate('notifications.newMessage', { from: msg.from })
+      return [{ id: msg.id, msgId: msg.id, text, timestamp: new Date().toISOString(), read: false }, ...prev]
+    })
+  }, [user, setNotifs])
+
   const addIncoming = useCallback((msg) => {
     setInbox((prev) => {
       if (prev.some((m) => m.id === msg.id)) return prev
       return [msg, ...prev]
     })
-  }, [setInbox])
+    notifyIncoming(msg)
+  }, [setInbox, notifyIncoming])
 
   useEffect(() => {
     if (!user?.id) return

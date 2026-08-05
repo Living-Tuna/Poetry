@@ -45,7 +45,7 @@ export default function PoetryDashboard() {
     editOnOpen, setEditOnOpen, myPoemsCachedOnly,
     reading, lang, changeLanguage,
   } = usePoetry()
-  const { shelf, inbox, inboxUnread, unreadCount, notifs } = useBook()
+  const { shelf, inbox, inboxUnread, unreadCount, notifs, addNotif } = useBook()
   const [languagePickerOpen, setLanguagePickerOpen] = useState(false)
   const [chatContact, setChatContact] = useState(null)
   const [chatContactInfo, setChatContactInfo] = useState(null)
@@ -328,6 +328,52 @@ export default function PoetryDashboard() {
     const t = setTimeout(() => setNotice(null), 3000)
     return () => clearTimeout(t)
   }, [notice])
+
+  // Daily 8 AM saved-favorites reminder (once per day, only when favorites exist)
+  useEffect(() => {
+    let timer = null
+    const dateKey = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+
+    const fire = () => {
+      const now = new Date()
+      const key = `poetry_daily_fav_notif_${user?.id || 'guest'}`
+      try {
+        if (localStorage.getItem(key) === dateKey(now)) return
+      } catch {}
+      if (now.getHours() < 8 || favorites.length === 0) return
+      try { localStorage.setItem(key, dateKey(now)) } catch {}
+      const count = favorites.length
+      const text = count === 1
+        ? t('notifications.dailyFavoritesOne')
+        : t('notifications.dailyFavoritesMany', { count })
+      addNotif(text)
+      try {
+        if ('Notification' in window && Notification.permission === 'granted') {
+          new Notification(t('notifications.dailyFavoritesTitle'), { body: text })
+        }
+      } catch {}
+    }
+
+    const arm = () => {
+      if (timer) clearTimeout(timer)
+      const now = new Date()
+      const next = new Date(now)
+      next.setHours(8, 0, 0, 0)
+      if (next <= now) next.setDate(next.getDate() + 1)
+      timer = setTimeout(() => { fire(); arm() }, next.getTime() - now.getTime() + 1000)
+    }
+
+    fire()
+    arm()
+    const onVisible = () => { if (document.visibilityState === 'visible') fire() }
+    window.addEventListener('focus', onVisible)
+    document.addEventListener('visibilitychange', onVisible)
+    return () => {
+      if (timer) clearTimeout(timer)
+      window.removeEventListener('focus', onVisible)
+      document.removeEventListener('visibilitychange', onVisible)
+    }
+  }, [favorites.length, user?.id, addNotif, t, lang])
 
   function handleNoticeClick() {
     const action = notice?.action

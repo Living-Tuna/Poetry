@@ -18,6 +18,7 @@ export default function BlendView({ onNavigate, focusQuery, onOpenAuth, onOpenCh
   const [error, setError] = useState('')
   const [results, setResults] = useState(null)
   const [requestedKey, setRequestedKey] = useState(null)
+  const [selfOnly, setSelfOnly] = useState(false)
   const me = user?.username || ''
   const focusBook = focusQuery?.book || null
 
@@ -30,6 +31,7 @@ export default function BlendView({ onNavigate, focusQuery, onOpenAuth, onOpenCh
     setBusy(true)
     setError('')
     setResults(null)
+    setSelfOnly(false)
     try {
       const groups = await fetchNearbyGroups(user)
       setResults(groups)
@@ -47,12 +49,15 @@ export default function BlendView({ onNavigate, focusQuery, onOpenAuth, onOpenCh
     setBusy(true)
     setError('')
     setResults(null)
+    setSelfOnly(false)
     try {
       const rows = await apiSearchShelfBooks(q)
       const groups = groupBooks(rows, user)
       await addDistances(groups, user)
-      groups.sort((a, b) => nearestDist(a) - nearestDist(b))
-      setResults(groups)
+      const others = groups.filter((g) => g.holders.some((x) => !x.isSelf))
+      setSelfOnly(others.length === 0 && groups.length > 0)
+      others.sort((a, b) => nearestDist(a) - nearestDist(b))
+      setResults(others)
     } catch {
       setError(t('blend.searchFailed'))
       setResults([])
@@ -166,7 +171,7 @@ export default function BlendView({ onNavigate, focusQuery, onOpenAuth, onOpenCh
       {results && results.length === 0 && !busy && !error && !focusBook && (
         <div className="rounded-xl p-6 text-center" style={{ backgroundColor: 'var(--tp-surface)', border: '1.5px dashed var(--tp-border)' }}>
           <p className="text-sm" style={{ color: 'var(--tp-text-secondary)' }}>
-            {t('blend.noBooks')}
+            {selfOnly ? t('blend.selfOnly') : t('blend.noBooks')}
           </p>
         </div>
       )}

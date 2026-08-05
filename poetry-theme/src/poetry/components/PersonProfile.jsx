@@ -137,7 +137,7 @@ export default function PersonProfile({ username, onClose }) {
                   {favorites.slice(0, 5).map((f) => (
                     <div key={f.key} className="rounded-xl p-3" style={{ backgroundColor: 'var(--tp-surface)', border: '1.5px solid var(--tp-border)' }}>
                       <p className="text-sm font-medium leading-relaxed" style={{ color: 'var(--tp-secondary)', fontFamily: '"Playfair Display", Georgia, serif' }}>
-                        "{f.lineText}"
+                        "{f.sentenceText || f.lineText}"
                       </p>
                       {f.poemTitle && (
                         <p className="text-[10px] mt-1.5" style={{ color: 'var(--tp-text-secondary)' }}>— {f.poemTitle}{f.author ? ` ${t('common.byAuthor', { author: f.author })}` : ''}</p>

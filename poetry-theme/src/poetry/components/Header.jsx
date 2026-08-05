@@ -103,7 +103,7 @@ export default function Header({
       }
       if (scope === 'favourites') {
         return (favorites || [])
-          .filter((f) => (f.poemTitle || '').toLowerCase().includes(q) || (f.lineText || '').toLowerCase().includes(q) || (f.author || '').toLowerCase().includes(q))
+          .filter((f) => (f.poemTitle || '').toLowerCase().includes(q) || (f.lineText || '').toLowerCase().includes(q) || (f.sentenceText || '').toLowerCase().includes(q) || (f.author || '').toLowerCase().includes(q))
           .slice(0, 8)
           .map((f) => ({ type: 'favorite', key: f.key, label: f.lineText, sub: `${f.poemTitle} · ${f.author}`, data: f }))
       }
@@ -136,6 +136,7 @@ export default function Header({
       const first = (favorites || []).find((f) =>
         (f.poemTitle || '').toLowerCase().includes(q.toLowerCase()) ||
         (f.lineText || '').toLowerCase().includes(q.toLowerCase()) ||
+        (f.sentenceText || '').toLowerCase().includes(q.toLowerCase()) ||
         (f.author || '').toLowerCase().includes(q.toLowerCase()))
       if (first && onOpenFavorites) { console.log('[Header] Enter → onOpenFavorites', first.key); onOpenFavorites(first) }
       return

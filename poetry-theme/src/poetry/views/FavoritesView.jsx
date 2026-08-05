@@ -65,7 +65,7 @@ export default function FavoritesView({ favorites, onNavigate, onClearFavorites,
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium leading-relaxed" style={{ color: 'var(--tp-secondary)', fontFamily: '"Playfair Display", Georgia, serif' }}>
-                    "{f.lineText}"
+                    "{f.sentenceText || f.lineText}"
                   </p>
                   <div className="flex items-center justify-between mt-2">
                     <p className="text-xs" style={{ color: 'var(--tp-text-secondary)' }}>
