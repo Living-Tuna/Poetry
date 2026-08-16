@@ -12,6 +12,7 @@ const MY_POEMS_KEY = 'poetry-my-poems'
 const RECENT_KEY = 'poetry-recently-viewed'
 const LIKED_KEY = 'poetry-liked-poems'
 const READING_KEY = 'poetry-reading'
+const SEEN_KEY = 'poetry-seen'
 const MAX_RECENT = 8
 
 function prefixedKey(prefix, username) {
@@ -45,6 +46,9 @@ export function PoetryProvider({ children }) {
   const [likedPoems, setLikedPoems] = useState(() => loadArray(prefixedKey(LIKED_KEY, user?.username)))
   const likedRef = useRef(new Set(likedPoems))
   const loadedIds = useRef(new Set())
+  const seenRef = useRef(new Set())
+  const saveSeenRef = useRef(null)
+  const currentPoemIdRef = useRef(null)
   const allRef = useRef([])
   const { lang, setLang } = useLanguage()
   const langRef = useRef(lang)
@@ -97,6 +101,37 @@ export function PoetryProvider({ children }) {
     setLikedPoems(arr)
   }, [user])
 
+  useEffect(() => {
+    if (saveSeenRef.current) clearTimeout(saveSeenRef.current)
+    seenRef.current = new Set(user ? loadArray(prefixedKey(SEEN_KEY, user.username)) : [])
+    return () => { if (saveSeenRef.current) clearTimeout(saveSeenRef.current) }
+  }, [user])
+
+  const markSeen = useCallback((poem) => {
+    if (!poem) return
+    const id = String(poem.id)
+    if (seenRef.current.has(id)) return
+    seenRef.current.add(id)
+    if (!user) return
+    if (saveSeenRef.current) clearTimeout(saveSeenRef.current)
+    saveSeenRef.current = setTimeout(() => {
+      saveArray(prefixedKey(SEEN_KEY, user.username), Array.from(seenRef.current))
+    }, 400)
+  }, [user])
+
+  const pickUnseen = useCallback((deck) => {
+    if (!deck || deck.length === 0) return null
+    const fresh = deck.filter(
+      (p) => !seenRef.current.has(String(p.id)) && !loadedIds.current.has(String(p.id))
+    )
+    const pool = fresh.length > 0 ? fresh : deck
+    let candidates = pool
+    const cur = currentPoemIdRef.current
+    if (candidates.length > 1 && cur) candidates = candidates.filter((p) => String(p.id) !== cur)
+    if (candidates.length === 0) candidates = deck
+    return candidates[Math.floor(Math.random() * candidates.length)]
+  }, [])
+
   const poemsForLang = useCallback((code) => {
     let poems = allRef.current.filter((p) => (p.language || 'en') === code)
     if (poems.length === 0) poems = allRef.current.filter((p) => (p.language || 'en') === 'en')
@@ -104,14 +139,19 @@ export function PoetryProvider({ children }) {
   }, [])
 
   const seedQueue = useCallback(() => {
-    let poems = poemsForLang(langRef.current)
-    if (poems.length === 0) poems = getTodaysArticles(langRef.current)
-    if (poems.length > 0) {
-      const maxStart = Math.max(0, poems.length - 3)
-      const start = Math.min(Math.floor(Math.random() * maxStart), maxStart)
-      const slice = poems.slice(start, start + 3)
-      loadedIds.current = new Set(slice.map((p) => p.id))
-      setQueue(slice)
+    let deck = poemsForLang(langRef.current)
+    if (deck.length === 0) deck = getTodaysArticles(langRef.current)
+    if (deck.length > 0) {
+      const fresh = deck.filter((p) => !seenRef.current.has(String(p.id)))
+      const pool = fresh.length > 0 ? fresh : deck
+      const picked = []
+      for (let i = 0; i < 3 && picked.length < pool.length; i++) {
+        const remaining = pool.filter((p) => !picked.includes(p))
+        if (remaining.length === 0) break
+        picked.push(remaining[Math.floor(Math.random() * remaining.length)])
+      }
+      loadedIds.current = new Set(picked.map((p) => p.id))
+      setQueue(picked)
       setIndex(0)
     }
   }, [poemsForLang])
@@ -173,6 +213,11 @@ export function PoetryProvider({ children }) {
   const canSwipeLeft = index > 0
   const canSwipeRight = index < queue.length - 1 || queue.length < poemsForLang(langRef.current).length
 
+  useEffect(() => {
+    currentPoemIdRef.current = currentPoem?.id || null
+    if (currentPoem) markSeen(currentPoem)
+  }, [currentPoem, markSeen])
+
   const isUserPoem = useCallback((poem) => {
     if (!poem) return false
     return myPoems.some((p) => p.id === poem.id)
@@ -181,12 +226,12 @@ export function PoetryProvider({ children }) {
   const enqueueNext = useCallback(() => {
     const deck = poemsForLang(langRef.current)
     if (queue.length >= deck.length) return
-    const next = deck.find((p) => !loadedIds.current.has(p.id))
+    const next = pickUnseen(deck)
     if (next) {
       loadedIds.current.add(next.id)
       setQueue((prev) => [...prev, next])
     }
-  }, [queue.length, poemsForLang])
+  }, [queue.length, poemsForLang, pickUnseen])
 
   const swipeRight = useCallback(() => {
     if (index < queue.length - 1) {
@@ -198,7 +243,7 @@ export function PoetryProvider({ children }) {
     }
     const deck = poemsForLang(langRef.current)
     if (queue.length >= deck.length) return
-    const next = deck.find((p) => !loadedIds.current.has(p.id))
+    const next = pickUnseen(deck)
     if (next) {
       loadedIds.current.add(next.id)
       setQueue((prev) => [...prev, next])
@@ -206,7 +251,7 @@ export function PoetryProvider({ children }) {
       setExpanded(false)
       recordRead(next)
     }
-  }, [index, queue.length, recordRead, poemsForLang])
+  }, [index, queue.length, recordRead, poemsForLang, pickUnseen])
 
   const swipeLeft = useCallback(() => {
     if (index > 0) {

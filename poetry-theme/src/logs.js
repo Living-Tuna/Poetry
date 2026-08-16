@@ -1,9 +1,20 @@
 const logs = [
   {
+    versionCode: '1.3.9',
+    date: 'August 2026',
+    features: [
+      'The reading queue is now shuffled fresh for every reader — each swipe draws the next poem at random from the whole library, so the order never repeats the same cluster of poems',
+      'Poems you have already read are remembered and skipped, so the reader keeps showing you verses you have not seen before — and once you have gone through the whole library, it starts a fresh cycle',
+    ],
+  },
+  {
     versionCode: '1.3.8',
     date: 'August 2026',
     bugs: [
       'Swiping down in the reader no longer closes the poem when you are mid-way through it — it scrolls back up towards the top so you can re-read, and only a swipe down from the very top closes the reading screen',
+    ],
+    features: [
+      'Marked lines are now shown bold in the theme color instead of a tinted box — favorites stand out on the page without covering the text with a border or background',
     ],
   },
   {
