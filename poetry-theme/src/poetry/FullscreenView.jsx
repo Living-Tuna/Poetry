@@ -649,11 +649,9 @@ export default function FullscreenView() {
                               key={wi}
                               data-word={wi}
                               style={{
-                                backgroundColor: covered ? 'color-mix(in srgb, var(--tp-secondary) 12%, transparent)' : 'transparent',
                                 color: covered ? 'var(--tp-secondary)' : 'var(--tp-text)',
-                                borderRadius: covered ? '4px' : 0,
-                                padding: covered ? '1px 3px' : 0,
-                                transition: 'background-color 0.2s, color 0.2s',
+                                fontWeight: covered ? 700 : 400,
+                                transition: 'color 0.2s, font-weight 0.2s',
                               }}
                             >
                               {tok}{wi < words.length - 1 ? ' ' : ''}
