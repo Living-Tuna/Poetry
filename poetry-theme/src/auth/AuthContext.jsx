@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react'
-import { supabase } from '../supabase/client'
+import { supabase, readCachedSession } from '../supabase/client'
 import { translate } from '../language/translator'
 import {
   apiLogin, apiSignup, apiCheckUsername,
@@ -8,42 +8,35 @@ import {
 
 const AuthContext = createContext(null)
 
+function sessionToUser(sessionUser) {
+  const meta = sessionUser?.user_metadata || {}
+  return {
+    id: sessionUser.id,
+    username: meta.username || '',
+    name: meta.name || meta.display_name || meta.username || 'User',
+    country: meta.country || '',
+    state: meta.state || '',
+    zip: meta.zip || '',
+    lat: meta.lat ? String(meta.lat) : '',
+    lng: meta.lng ? String(meta.lng) : '',
+  }
+}
+
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const cachedSession = readCachedSession()
+  const [user, setUser] = useState(() => cachedSession?.user ? sessionToUser(cachedSession.user) : null)
+  const [loading, setLoading] = useState(!cachedSession)
   const lastSignup = useRef(0)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        const meta = session.user.user_metadata || {}
-        setUser({
-          id: session.user.id,
-          username: meta.username || '',
-          name: meta.name || meta.display_name || meta.username || 'User',
-          country: meta.country || '',
-          state: meta.state || '',
-          zip: meta.zip || '',
-          lat: meta.lat ? String(meta.lat) : '',
-          lng: meta.lng ? String(meta.lng) : '',
-        })
-      }
+      if (session?.user) setUser(sessionToUser(session.user))
       setLoading(false)
     })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
-        const meta = session.user.user_metadata || {}
-        setUser({
-          id: session.user.id,
-          username: meta.username || '',
-          name: meta.name || meta.display_name || meta.username || 'User',
-          country: meta.country || '',
-          state: meta.state || '',
-          zip: meta.zip || '',
-          lat: meta.lat ? String(meta.lat) : '',
-          lng: meta.lng ? String(meta.lng) : '',
-        })
+        setUser(sessionToUser(session.user))
       } else {
         setUser(null)
       }

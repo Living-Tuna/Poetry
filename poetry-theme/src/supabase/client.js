@@ -11,6 +11,22 @@ export const supabase = createClient(supabaseUrl, supabaseKey, {
   },
 })
 
+const AUTH_STORAGE_KEY = supabaseUrl
+  ? `sb-${supabaseUrl.split('//')[1]?.split('.')[0]}-auth-token`
+  : ''
+
+export function readCachedSession() {
+  try {
+    if (typeof window === 'undefined' || typeof localStorage === 'undefined' || !AUTH_STORAGE_KEY) return null
+    const raw = localStorage.getItem(AUTH_STORAGE_KEY)
+    if (!raw) return null
+    const data = JSON.parse(raw)
+    return data?.access_token && data?.user ? data : null
+  } catch {
+    return null
+  }
+}
+
 export async function hashAnswer(text) {
   const enc = new TextEncoder().encode(text.toLowerCase().trim())
   const buf = await crypto.subtle.digest('SHA-256', enc)
