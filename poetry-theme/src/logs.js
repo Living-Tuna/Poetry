@@ -1,5 +1,23 @@
 const logs = [
   {
+    versionCode: '1.3.8',
+    date: 'August 2026',
+    bugs: [
+      'Swiping down in the reader no longer closes the poem when you are mid-way through it — it scrolls back up towards the top so you can re-read, and only a swipe down from the very top closes the reading screen',
+    ],
+  },
+  {
+    versionCode: '1.3.7',
+    date: 'August 2026',
+    features: [
+      'Every poem now has its own direct link — open a poem straight from its URL, and each page shows the correct title, description, and preview image for search engines and social sharing',
+      'Book links can pre-fill the Blend search — a link with ?q= jumps straight into a book search for that title',
+      'The whole library is now discoverable by search engines — a full sitemap of every page and poem plus a robots.txt guide crawlers to the right places',
+      'Poems publish machine-readable metadata so Google, Facebook, and Twitter can show a rich card when someone shares a link',
+      'The home screen now spreads into two columns on wider screens — announcements, your favorite line, and everything else are easier to scan on desktop',
+    ],
+  },
+  {
     versionCode: '1.3.6',
     date: 'August 2026',
     features: [

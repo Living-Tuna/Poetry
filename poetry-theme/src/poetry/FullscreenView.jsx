@@ -86,6 +86,7 @@ export default function FullscreenView() {
   const dragStart = useRef(null)
   const axisLock = useRef(null)
   const dragTargetScroll = useRef(null)
+  const dragAtTopRef = useRef(true)
   const scrollRef = useRef(null)
   const scrollPositions = useRef({})
   const trackRef = useRef(null)
@@ -241,6 +242,7 @@ export default function FullscreenView() {
     }
     axisLock.current = null
     dragTargetScroll.current = target.closest('.poem-scroll') || null
+    dragAtTopRef.current = !dragTargetScroll.current || dragTargetScroll.current.scrollTop <= 0
     setDragging(true)
   }
 
@@ -294,8 +296,10 @@ export default function FullscreenView() {
         return
       }
       if (dy > 60 && Math.abs(dy) > Math.abs(dx) * 1.5) {
-        closeFullscreen()
-        return
+        if (dragAtTopRef.current) {
+          closeFullscreen()
+          return
+        }
       }
       if (trackX !== 0) resetTrack()
       return
