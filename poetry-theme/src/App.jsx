@@ -9,6 +9,8 @@ export default function App() {
   return (
     <Routes>
       <Route path="/" element={<Navigate to={`/${savedLang}`} replace />} />
+      <Route path="/poem/:id/:slug" element={<PoetryDashboard />} />
+      <Route path="/poem/:id" element={<PoetryDashboard />} />
       <Route path="/:view" element={<PoetryDashboard />} />
       <Route path="*" element={<Navigate to={`/${savedLang}`} replace />} />
     </Routes>

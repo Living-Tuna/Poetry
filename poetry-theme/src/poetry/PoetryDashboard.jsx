@@ -33,6 +33,7 @@ import { apiResolveUser } from '../api/messages'
 import { apiAutoDetectLocation } from '../api/location'
 import { supabase } from '../supabase/client'
 import { useLanguage } from '../language/LanguageProvider'
+import { applySeo, poemJsonLd, PAGE_SEO, poemUrl, slugify, SITE_URL } from '../seo/seo'
 
 export default function PoetryDashboard() {
   const { t } = useLanguage()
@@ -41,9 +42,9 @@ export default function PoetryDashboard() {
   const {
     resetQueue, favorites, clearFavorites, fullscreen,
     openFullscreen, navigateToPoem, myPoems, addMyPoem, updateMyPoem, deleteMyPoem,
-    editRequest, setEditRequest, recentlyViewed, allPoems,
+    editRequest, setEditRequest, recentlyViewed, allPoems, currentPoem,
     editOnOpen, setEditOnOpen, myPoemsCachedOnly,
-    reading, lang, changeLanguage,
+    loading, reading, lang, changeLanguage,
   } = usePoetry()
   const { shelf, inbox, inboxUnread, unreadCount, notifs, addNotif } = useBook()
   const [languagePickerOpen, setLanguagePickerOpen] = useState(false)
@@ -73,6 +74,7 @@ export default function PoetryDashboard() {
   const [showLocationModal, setShowLocationModal] = useState(false)
   const [blendFocus, setBlendFocus] = useState(null)
   const [focusFavorite, setFocusFavorite] = useState(null)
+  const [deepPoemId, setDeepPoemId] = useState(null)
   const locationAsked = useRef(false)
   const [showWriteModal, setShowWriteModal] = useState(false)
   const [isMobile, setIsMobile] = useState(() => window.matchMedia('(max-width: 640px)').matches)
@@ -112,21 +114,61 @@ export default function PoetryDashboard() {
 
   useEffect(() => {
     const seg = location.pathname.split('/')[1]
+    const parts = location.pathname.split('/').filter(Boolean)
     window.scrollTo(0, 0)
     const knownLangs = new Set(Object.values(COUNTRIES).flatMap((c) => c.languages.map((l) => l.code)))
     knownLangs.add('en')
     if (seg && knownLangs.has(seg)) {
       changeLanguage(seg)
       setBodyView('dashboard')
-    }     else if (seg === 'shelf') setBodyView('shelf')
-    else if (seg === 'blend') setBodyView('blend')
+    } else if (seg === 'poem') {
+      const id = parts[1]
+      if (id) {
+        setDeepPoemId(decodeURIComponent(id))
+        setBodyView('dashboard')
+      } else {
+        navigate(`/${localStorage.getItem('poetry_lang') || 'en'}`)
+      }
+    } else if (seg === 'blend') {
+      setBodyView('blend')
+      const q = new URLSearchParams(location.search).get('q')
+      if (q && q.trim()) setBlendFocus({ q: q.trim(), n: Date.now() })
+    } else if (seg === 'shelf') setBodyView('shelf')
     else if (seg === 'inbox') setBodyView('inbox')
     else if (seg === 'notifications') setBodyView('notifications')
     else if (seg === 'terms') setBodyView('terms')
     else if (seg === 'policy') setBodyView('privacy')
     else if (seg === 'about') setBodyView('about')
     else if (seg) navigate(`/${localStorage.getItem('poetry_lang') || 'en'}`)
-  }, [location.pathname, navigate, changeLanguage])
+  }, [location.pathname, location.search, navigate, changeLanguage])
+
+  useEffect(() => {
+    if (!deepPoemId || loading || !allPoems.length || fullscreen) return
+    const poem =
+      allPoems.find((p) => String(p.id) === deepPoemId) ||
+      myPoems.find((p) => String(p.id) === deepPoemId)
+    if (poem) {
+      setDeepPoemId(null)
+      navigateToPoem(poem)
+    }
+  }, [deepPoemId, allPoems, myPoems, loading, fullscreen, navigateToPoem])
+
+  useEffect(() => {
+    if (fullscreen && currentPoem) {
+      applySeo({
+        title: `${currentPoem.title} — ${currentPoem.author || 'Poem'} | Blendly`,
+        description: String(currentPoem.content || '').split('\n')[0].slice(0, 160),
+        canonical: poemUrl(currentPoem),
+        jsonLd: poemJsonLd(currentPoem),
+      })
+    } else {
+      const seo = PAGE_SEO[bodyView] || PAGE_SEO.dashboard
+      applySeo({
+        ...seo,
+        canonical: bodyView === 'dashboard' ? `${SITE_URL}/${lang}` : `${SITE_URL}/${bodyView}`,
+      })
+    }
+  }, [fullscreen, currentPoem, bodyView, lang])
 
   useEffect(() => {
     const mq = window.matchMedia('(max-width: 640px)')
@@ -262,6 +304,12 @@ export default function PoetryDashboard() {
       const zip = localStorage.getItem('poetry_zip') || user?.zip || ''
       if (user && !zip) setShowLocationModal(true)
     }
+  }
+
+  function handleOpenPoem(poem) {
+    if (!poem) return
+    if (poem.id) navigate(`/poem/${encodeURIComponent(String(poem.id))}/${slugify(poem.title)}`)
+    navigateToPoem(poem)
   }
 
   function handleOpenBlendBook(book) {
@@ -431,7 +479,7 @@ export default function PoetryDashboard() {
         lang={lang}
         onLangClick={() => setLanguagePickerOpen(true)}
         allPoems={filteredPoems}
-        onSearchSelect={navigateToPoem}
+        onSearchSelect={handleOpenPoem}
         favorites={favorites}
         view={bodyView}
         onOpenBooks={(title) => { console.log('[Dashboard] onOpenBooks', title); setBlendFocus({ q: title || '', n: Date.now() }) }}
@@ -556,7 +604,7 @@ export default function PoetryDashboard() {
           <DashboardView
             user={user} slideOpen={slideOpen} setSlideOpen={setSlideOpen}
             setAuthMode={setAuthMode} btnWhite={btnWhite}
-            recentlyViewed={recentlyViewed.filter((p) => (p.language || 'en') === lang)} navigateToPoem={navigateToPoem}
+            recentlyViewed={recentlyViewed.filter((p) => (p.language || 'en') === lang)} navigateToPoem={handleOpenPoem}
             trending={trending} trendingScroll={trendingScroll}
             scrollTrending={scrollTrending}
             latest={latest}
@@ -575,7 +623,7 @@ export default function PoetryDashboard() {
             onEditPoem={handleEditPoem}
             onDeletePoem={deleteMyPoem}
             onNewPoem={() => { setShowWriteModal(true); setEditingPoem(null); setWriteTitle(''); setWriteContent(''); setWriteCategories([]) }}
-            navigateToPoem={navigateToPoem}
+            navigateToPoem={handleOpenPoem}
           />
         )}
         {bodyView === 'favorites' && (
@@ -604,7 +652,7 @@ export default function PoetryDashboard() {
             category={selectedCategory}
             poems={categoryPoems}
             onNavigate={handleNavigate}
-            navigateToPoem={navigateToPoem}
+            navigateToPoem={handleOpenPoem}
           />
         )}
         {bodyView === 'shelf' && <ShelfView onNavigate={handleNavigate} />}

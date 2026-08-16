@@ -90,11 +90,11 @@ export default function DashboardView({
   }, [])
 
   return (
-    <div className="px-4 py-5 max-w-2xl mx-auto w-full space-y-8">
-      <AnnouncementBanner />
+    <div className="px-4 py-5 max-w-6xl mx-auto w-full space-y-8 md:space-y-0 md:grid md:grid-cols-2 md:items-start md:gap-6">
+      <div className="md:col-span-2"><AnnouncementBanner /></div>
 
       {favoriteQuote && (
-        <section className="animate-fade-in">
+        <section className="animate-fade-in md:col-start-1">
           <div className="flex items-center justify-between mb-3">
             <p className="text-sm font-bold flex items-center gap-1.5" style={{ color: 'var(--tp-text)' }}>
               <HeartIcon size={16} /> {t('dashboard.favoriteLine')}
@@ -112,7 +112,7 @@ export default function DashboardView({
         </section>
       )}
 
-      <div className="text-center animate-fade-in">
+      <div className="text-center animate-fade-in md:col-start-2">
         {user ? (
           <>
             <p className="text-sm" style={{ color: 'var(--tp-text-secondary)' }}>{t('dashboard.welcomeBack')}</p>
@@ -175,7 +175,7 @@ export default function DashboardView({
       </div>
 
       <button onClick={() => onNavigate('shelf')}
-        className="w-full text-left rounded-xl p-4 animate-fade-in transition-all duration-200 hover:scale-[1.01] active:scale-[0.99]"
+        className="w-full text-left rounded-xl p-4 animate-fade-in transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] md:col-start-1"
         style={{ backgroundColor: 'var(--tp-surface)', border: '1.5px solid var(--tp-border)', boxShadow: 'var(--tp-card-shadow)' }}>
         <div className="flex items-start gap-3">
           <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
@@ -193,7 +193,7 @@ export default function DashboardView({
       </button>
 
       <button onClick={() => onNavigate('blend')}
-        className="w-full text-left rounded-xl p-4 animate-fade-in transition-all duration-200 hover:scale-[1.01] active:scale-[0.99]"
+        className="w-full text-left rounded-xl p-4 animate-fade-in transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] md:col-start-2"
         style={{ backgroundColor: 'var(--tp-surface)', border: '1.5px solid var(--tp-border)', boxShadow: 'var(--tp-card-shadow)' }}>
         <div className="flex items-start gap-3">
           <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
@@ -211,7 +211,7 @@ export default function DashboardView({
       </button>
 
       {nearby && nearby.length > 0 && (
-        <section className="animate-fade-in">
+        <section className="animate-fade-in md:col-start-1">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-sm font-bold flex items-center gap-1.5" style={{ color: 'var(--tp-text)' }}>
               <BookIcon size={16} /> {t('dashboard.booksNearYou')}
@@ -259,7 +259,7 @@ export default function DashboardView({
         </section>
       )}
 
-      <section className="animate-fade-in">
+      <section className="animate-fade-in md:col-start-2">
         <div className="rounded-xl p-4" style={{ backgroundColor: 'var(--tp-surface)', border: '1.5px solid var(--tp-border)', boxShadow: 'var(--tp-card-shadow)' }}>
           <h3 className="text-sm font-bold flex items-center gap-1.5" style={{ color: 'var(--tp-text)' }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2" /><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" /></svg>
@@ -298,7 +298,7 @@ export default function DashboardView({
       </section>
 
       {recentlyViewed.length > 0 && (
-        <section className="animate-fade-in">
+        <section className="animate-fade-in md:col-start-1">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-sm font-bold flex items-center gap-1.5" style={{ color: 'var(--tp-text)' }}>
               <ClockIcon size={16} /> {t('dashboard.recentlyViewed')}</h3>
@@ -318,7 +318,7 @@ export default function DashboardView({
       )}
 
       {trending.length > 0 && (
-      <section className="animate-fade-in">
+      <section className="animate-fade-in md:col-start-2">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-bold flex items-center gap-1.5" style={{ color: 'var(--tp-text)' }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 1 1.133 1 2.867 1 4a5.5 5.5 0 0 1-11 0z" /></svg>
@@ -365,7 +365,7 @@ export default function DashboardView({
       )}
 
       {latest.length > 0 && (
-        <section className="animate-fade-in">
+        <section className="animate-fade-in md:col-start-1">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-sm font-bold flex items-center gap-1.5" style={{ color: 'var(--tp-text)' }}>
               <ClockIcon size={16} /> {t('dashboard.latestPoems')}</h3>
@@ -386,7 +386,7 @@ export default function DashboardView({
         </section>
       )}
 
-      <section className="animate-fade-in">
+      <section className="animate-fade-in md:col-start-2">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <h3 className="text-sm font-bold flex items-center gap-1.5" style={{ color: 'var(--tp-text)' }}>
@@ -427,7 +427,7 @@ export default function DashboardView({
         )}
       </section>
 
-      <section className="animate-fade-in">
+      <section className="animate-fade-in md:col-start-1">
         <div className="flex items-center justify-between mb-3">
             <h3 className="text-sm font-bold flex items-center gap-1.5" style={{ color: 'var(--tp-text)' }}>
               <BookIcon size={16} /> {t('dashboard.startReading')}</h3>
@@ -436,11 +436,11 @@ export default function DashboardView({
         <PoetryCard />
       </section>
 
-      <div className="pt-4 pb-2" style={{ borderTop: '1px solid var(--tp-border)' }}>
+      <div className="pt-4 pb-2 md:col-start-2" style={{ borderTop: '1px solid var(--tp-border)' }}>
         <LegalLinks onNavigate={onNavigate} />
       </div>
 
-      <div className="h-4" />
+      <div className="h-4 md:col-span-2" />
     </div>
   )
 }

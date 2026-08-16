@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /favorites
+Disallow: /my-writings
+Disallow: /inbox
+Disallow: /notifications
+Disallow: /settings
+
+Sitemap: https://blendly.sbs/sitemap.xml
