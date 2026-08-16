@@ -1,5 +1,12 @@
 const logs = [
   {
+    versionCode: '1.4.0',
+    date: 'August 2026',
+    features: [
+      'Readers will see our 3k historic collections and independent poems in random order, so the reading queue is always fresh and never repeats the same cluster of poems',
+      ],
+  },
+  {
     versionCode: '1.3.9',
     date: 'August 2026',
     features: [

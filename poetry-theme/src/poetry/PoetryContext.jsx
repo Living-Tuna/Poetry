@@ -14,6 +14,7 @@ const LIKED_KEY = 'poetry-liked-poems'
 const READING_KEY = 'poetry-reading'
 const SEEN_KEY = 'poetry-seen'
 const MAX_RECENT = 8
+const MIN_LANG_DECK = 10
 
 function prefixedKey(prefix, username) {
   return username ? `${prefix}-${username}` : prefix
@@ -133,9 +134,9 @@ export function PoetryProvider({ children }) {
   }, [])
 
   const poemsForLang = useCallback((code) => {
-    let poems = allRef.current.filter((p) => (p.language || 'en') === code)
-    if (poems.length === 0) poems = allRef.current.filter((p) => (p.language || 'en') === 'en')
-    return poems
+    const poems = allRef.current.filter((p) => (p.language || 'en') === code)
+    if (poems.length >= MIN_LANG_DECK) return poems
+    return allRef.current
   }, [])
 
   const seedQueue = useCallback(() => {
