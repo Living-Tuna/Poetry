@@ -1,5 +1,16 @@
 const logs = [
   {
+    versionCode: '1.3.6',
+    date: 'August 2026',
+    features: [
+      'The full-screen reader now slides reliably on touch devices — swiping sideways between poems feels natural on any phone',
+      'Lines are highlighted on a double-tap instead of a single tap — no more accidentally saving a line, and double-tapping a marked line removes the mark',
+      'Poem text in the reader is tighter and cleaner — words no longer look spread out with extra spacing',
+      'The reader header now shows the poem title with its star count and total lines, and the previous/next arrows moved into a slim bar at the bottom',
+      'Favorite lines now show newest-first, so the latest additions always appear on top',
+    ],
+  },
+  {
     versionCode: '1.3.3',
     date: 'August 2026',
     features: [

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useLanguage } from '../../language/LanguageProvider'
 import ShareQuoteModal from '../components/ShareQuoteModal'
 
@@ -9,20 +9,25 @@ export default function FavoritesView({ favorites, onNavigate, onClearFavorites,
   const [shareTarget, setShareTarget] = useState(null)
   const [page, setPage] = useState(1)
 
-  const pageCount = Math.max(1, Math.ceil(favorites.length / PAGE_SIZE))
+  const sortedFavorites = useMemo(
+    () => [...favorites].sort((a, b) => (b.date || 0) - (a.date || 0)),
+    [favorites]
+  )
+
+  const pageCount = Math.max(1, Math.ceil(sortedFavorites.length / PAGE_SIZE))
   const safePage = Math.min(page, pageCount)
   const start = (safePage - 1) * PAGE_SIZE
-  const pageFavorites = favorites.slice(start, start + PAGE_SIZE)
+  const pageFavorites = sortedFavorites.slice(start, start + PAGE_SIZE)
 
   useEffect(() => {
     if (page > pageCount) setPage(1)
-  }, [favorites.length, page, pageCount])
+  }, [sortedFavorites.length, page, pageCount])
 
   useEffect(() => {
-    if (focusFavorite && favorites.some((f) => f.key === focusFavorite.key)) {
+    if (focusFavorite && sortedFavorites.some((f) => f.key === focusFavorite.key)) {
       setShareTarget(focusFavorite)
     }
-  }, [focusFavorite, favorites])
+  }, [focusFavorite, sortedFavorites])
 
   return (
     <div className="min-h-full px-4 py-6 max-w-2xl mx-auto animate-fade-in">
@@ -39,7 +44,7 @@ export default function FavoritesView({ favorites, onNavigate, onClearFavorites,
             {t('profile.favoriteLines')}
           </h2>
         </div>
-        {favorites.length > 0 && (
+        {sortedFavorites.length > 0 && (
           <button onClick={onClearFavorites}
             className="text-xs px-3 py-1.5 rounded-lg font-medium transition-all hover:opacity-70"
             style={{ color: '#fca5a5', backgroundColor: 'color-mix(in srgb, #fca5a5 15%, transparent)' }}>
@@ -48,7 +53,7 @@ export default function FavoritesView({ favorites, onNavigate, onClearFavorites,
         )}
       </div>
 
-      {favorites.length === 0 ? (
+      {sortedFavorites.length === 0 ? (
         <div className="rounded-xl p-8 text-center" style={{ backgroundColor: 'var(--tp-surface)', border: '1.5px dashed var(--tp-border)' }}>
           <p className="text-sm" style={{ color: 'var(--tp-text-secondary)' }}>{t('favorites.empty')}</p>
           <p className="text-xs mt-2" style={{ color: 'var(--tp-text-secondary)' }}>
@@ -91,7 +96,7 @@ export default function FavoritesView({ favorites, onNavigate, onClearFavorites,
         </div>
       )}
 
-      {favorites.length > 0 && pageCount > 1 && (
+      {sortedFavorites.length > 0 && pageCount > 1 && (
         <div className="flex items-center justify-center gap-3 mt-5">
           <button
             onClick={() => setPage(safePage - 1)}
@@ -118,8 +123,8 @@ export default function FavoritesView({ favorites, onNavigate, onClearFavorites,
       {shareTarget && (
         <ShareQuoteModal
           favorite={shareTarget}
-          favorites={favorites}
-          initialIndex={favorites.indexOf(shareTarget)}
+          favorites={sortedFavorites}
+          initialIndex={sortedFavorites.indexOf(shareTarget)}
           onClose={() => setShareTarget(null)}
         />
       )}

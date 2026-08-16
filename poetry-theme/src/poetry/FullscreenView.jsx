@@ -175,9 +175,11 @@ export default function FullscreenView() {
   }
 
   const lastTapRef = useRef({ time: 0, line: null })
+  const lastTouchEndRef = useRef(0)
 
   function handlePointerDown(e) {
     if (e.pointerType === 'touch') return
+    if (e.pointerType === 'mouse' && Date.now() - lastTouchEndRef.current < 150) return
     startDrag(e.clientX, e.clientY, e.target)
     try { e.currentTarget.setPointerCapture(e.pointerId) } catch {}
   }
@@ -218,6 +220,7 @@ export default function FullscreenView() {
   function handleTouchEnd(e) {
     const t = e.changedTouches[0]
     if (!t) return
+    lastTouchEndRef.current = Date.now()
     endDrag(t.clientX, t.clientY)
   }
 
@@ -317,9 +320,8 @@ export default function FullscreenView() {
 
   function handleTap(line, word) {
     const now = Date.now()
-    const dbl = lastTapRef.current
-      && now - lastTapRef.current.time <= DOUBLE_TAP_MS
-      && lastTapRef.current.line === line
+    const prev = lastTapRef.current
+    const dbl = prev && now - prev.time <= DOUBLE_TAP_MS && prev.line === line
     lastTapRef.current = { time: now, line }
     if (dbl) toggleLineFavorite(line, word)
   }
@@ -427,10 +429,10 @@ export default function FullscreenView() {
     >
       {/* Header bar */}
       <div
-        className="flex items-center justify-between px-4 py-3 flex-shrink-0 select-none"
+        className="flex items-center justify-between px-3 py-2.5 flex-shrink-0 select-none gap-3"
         style={{ borderBottom: '1px solid var(--tp-border)', backgroundColor: 'var(--tp-bg)' }}
       >
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1.5 flex-shrink-0">
           <button
             onClick={closeFullscreen}
             className="p-1.5 rounded-xl transition-opacity hover:opacity-70"
@@ -441,9 +443,6 @@ export default function FullscreenView() {
               <path d="M19 12H5M12 19l-7-7 7-7" />
             </svg>
           </button>
-          <span className="text-xs" style={{ color: 'var(--tp-text-secondary)' }}>{t('poetry.swipeSideways')}</span>
-        </div>
-        <div className="flex items-center gap-2">
           {userPoem && (
             <>
               <button
@@ -462,30 +461,18 @@ export default function FullscreenView() {
               ><CloseIcon size={14} /></button>
             </>
           )}
-          <button
-            onClick={(e) => { e.stopPropagation(); goPrev() }}
-            disabled={!canSwipeLeft}
-            className="p-1.5 rounded-xl transition-all disabled:opacity-20 hover:opacity-70"
-            style={{ color: 'var(--tp-text-secondary)' }}
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-              <path d="M15 18l-6-6 6-6" />
-            </svg>
-          </button>
+        </div>
+        <h2
+          className="flex-1 min-w-0 text-center text-base sm:text-lg font-bold truncate leading-tight"
+          style={{ color: 'var(--tp-text)', fontFamily: '"Playfair Display", Georgia, serif' }}
+        >
+          {currentPoem?.title}
+        </h2>
+        <div className="flex items-center gap-2 flex-shrink-0">
           <span className="text-xs tabular-nums flex items-center gap-2" style={{ color: 'var(--tp-text-secondary)' }}>
             <span className="flex items-center gap-0.5"><StarIcon size={12} /> {markedCount}</span>
             <span>{t('poetry.lines', { count: lines.length })}</span>
           </span>
-          <button
-            onClick={(e) => { e.stopPropagation(); goNext() }}
-            disabled={!canSwipeRight}
-            className="p-1.5 rounded-xl transition-all disabled:opacity-20 hover:opacity-70"
-            style={{ color: 'var(--tp-text-secondary)' }}
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-              <path d="M9 18l6-6-6-6" />
-            </svg>
-          </button>
         </div>
       </div>
 
@@ -692,15 +679,33 @@ export default function FullscreenView() {
 
       {/* Bottom bar */}
       <div
-        className="flex-shrink-0 px-5 py-2.5 flex items-center justify-between text-xs"
+        className="flex-shrink-0 px-4 py-2 flex items-center justify-between text-xs select-none"
         style={{ color: 'var(--tp-text-secondary)', borderTop: '1px solid var(--tp-border)', backgroundColor: 'var(--tp-bg)' }}
       >
-        <button onClick={goPrev} disabled={!canSwipeLeft} className="disabled:opacity-30">
-          ← {canSwipeLeft ? t('poetry.prev') : '—'}
+        <button
+          onClick={goPrev}
+          disabled={!canSwipeLeft}
+          className="p-2 rounded-xl transition-all disabled:opacity-20 hover:opacity-70"
+          style={{ color: 'var(--tp-text-secondary)' }}
+          aria-label={t('poetry.prev')}
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+            <path d="M15 18l-6-6 6-6" />
+          </svg>
         </button>
-        <span>{t('poetry.swipeOr')} <kbd className="px-1 rounded" style={{ backgroundColor: 'var(--tp-border)', padding: '1px 6px' }}>←</kbd> <kbd className="px-1 rounded" style={{ backgroundColor: 'var(--tp-border)', padding: '1px 6px' }}>→</kbd></span>
-        <button onClick={goNext} disabled={!canSwipeRight} className="disabled:opacity-30">
-          {canSwipeRight ? t('poetry.next') : '—'} →
+        <span className="text-[11px] tracking-widest uppercase flex items-center gap-1" style={{ opacity: 0.5 }}>
+          {t('poetry.swipe')}
+        </span>
+        <button
+          onClick={goNext}
+          disabled={!canSwipeRight}
+          className="p-2 rounded-xl transition-all disabled:opacity-20 hover:opacity-70"
+          style={{ color: 'var(--tp-text-secondary)' }}
+          aria-label={t('poetry.next')}
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+            <path d="M9 18l6-6-6-6" />
+          </svg>
         </button>
       </div>
     </div>
