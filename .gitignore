@@ -8,3 +8,4 @@ confidentials/
 !/.gitignore
 !.gitignore
 !/.github
+.github/workflows/
