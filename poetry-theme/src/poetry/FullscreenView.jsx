@@ -9,6 +9,7 @@ const SWIPE_THRESHOLD = 40
 const TAP_THRESHOLD = 10
 const LOCK_THRESHOLD = 8
 const ANIM_DURATION = 380
+const DOUBLE_TAP_MS = 300
 
 function abbrev(n) {
   if (!n) return '0'
@@ -87,6 +88,29 @@ export default function FullscreenView() {
   const dragTargetScroll = useRef(null)
   const scrollRef = useRef(null)
   const scrollPositions = useRef({})
+  const trackRef = useRef(null)
+  const touchHandlersRef = useRef(null)
+  touchHandlersRef.current = { handleTouchStart, handleTouchMove, handleTouchEnd, handleTouchCancel }
+
+  useEffect(() => {
+    const el = trackRef.current
+    if (!el) return
+    const h = () => touchHandlersRef.current
+    const onStart = (e) => h().handleTouchStart(e)
+    const onMove = (e) => h().handleTouchMove(e)
+    const onEnd = (e) => h().handleTouchEnd(e)
+    const onCancel = () => h().handleTouchCancel()
+    el.addEventListener('touchstart', onStart, { passive: true })
+    el.addEventListener('touchmove', onMove, { passive: false })
+    el.addEventListener('touchend', onEnd)
+    el.addEventListener('touchcancel', onCancel)
+    return () => {
+      el.removeEventListener('touchstart', onStart)
+      el.removeEventListener('touchmove', onMove)
+      el.removeEventListener('touchend', onEnd)
+      el.removeEventListener('touchcancel', onCancel)
+    }
+  }, [])
 
   const leftPoem = index > 0 ? queue[index - 1] : null
   const rightPoem = index < queue.length - 1 ? queue[index + 1] : null
@@ -150,29 +174,76 @@ export default function FullscreenView() {
     }
   }
 
+  const lastTapRef = useRef({ time: 0, line: null })
+
   function handlePointerDown(e) {
-    if (editing) return
-    if (e.target.closest('button, [role="button"], a')) return
-    if (animating) return
-    const lineEl = e.target.closest('[data-line]')
-    const wordEl = e.target.closest('[data-word]')
-    dragStart.current = {
-      x: e.clientX,
-      y: e.clientY,
-      line: lineEl ? Number(lineEl.dataset.line) : null,
-      word: wordEl ? Number(wordEl.dataset.word) : null,
-    }
-    axisLock.current = null
-    dragTargetScroll.current = e.target.closest('.poem-scroll') || null
-    setDragging(true)
+    if (e.pointerType === 'touch') return
+    startDrag(e.clientX, e.clientY, e.target)
     try { e.currentTarget.setPointerCapture(e.pointerId) } catch {}
   }
 
   function handlePointerMove(e) {
+    if (e.pointerType === 'touch') return
     if (!dragStart.current || !dragging) return
     if (animating) return
-    const dx = e.clientX - dragStart.current.x
-    const dy = e.clientY - dragStart.current.y
+    moveDrag(e.clientX, e.clientY)
+    if (e.cancelable) e.preventDefault()
+  }
+
+  function handlePointerUp(e) {
+    if (e.pointerType === 'touch') return
+    endDrag(e.clientX, e.clientY)
+  }
+
+  function handlePointerCancel(e) {
+    if (e.pointerType === 'touch') return
+    cancelDrag()
+  }
+
+  function handleTouchStart(e) {
+    const t = e.touches[0] || e.changedTouches[0]
+    if (!t) return
+    startDrag(t.clientX, t.clientY, e.target)
+  }
+
+  function handleTouchMove(e) {
+    const t = e.touches[0] || e.changedTouches[0]
+    if (!t) return
+    if (!dragStart.current || !dragging) return
+    if (animating) return
+    const locked = moveDrag(t.clientX, t.clientY)
+    if (locked === 'h' && e.cancelable) e.preventDefault()
+  }
+
+  function handleTouchEnd(e) {
+    const t = e.changedTouches[0]
+    if (!t) return
+    endDrag(t.clientX, t.clientY)
+  }
+
+  function handleTouchCancel() {
+    cancelDrag()
+  }
+
+  function startDrag(x, y, target) {
+    if (editing) return
+    if (target.closest('button, [role="button"], a')) return
+    if (animating) return
+    const lineEl = target.closest('[data-line]')
+    const wordEl = target.closest('[data-word]')
+    dragStart.current = {
+      x, y,
+      line: lineEl ? Number(lineEl.dataset.line) : null,
+      word: wordEl ? Number(wordEl.dataset.word) : null,
+    }
+    axisLock.current = null
+    dragTargetScroll.current = target.closest('.poem-scroll') || null
+    setDragging(true)
+  }
+
+  function moveDrag(x, y) {
+    const dx = x - dragStart.current.x
+    const dy = y - dragStart.current.y
 
     if (axisLock.current === null) {
       const absDx = Math.abs(dx)
@@ -182,31 +253,30 @@ export default function FullscreenView() {
       } else if (absDy > LOCK_THRESHOLD && absDy > absDx) {
         axisLock.current = 'v'
         setDragging(false)
-        try { e.currentTarget.releasePointerCapture(e.pointerId) } catch {}
-        return
+        return 'v'
       } else {
-        return
+        return null
       }
     }
 
-    if (axisLock.current === 'v') return
+    if (axisLock.current === 'v') return 'v'
 
     if (dragTargetScroll.current) {
       dragTargetScroll.current.style.overflow = 'hidden'
     }
-    if (e.cancelable) e.preventDefault()
 
     const vw = window.innerWidth
     const pct = (dx / vw) * 100
     const minTrack = canSwipeRight ? -100 : 0
     const maxTrack = canSwipeLeft ? 100 : 0
     setTrackX(Math.max(minTrack, Math.min(maxTrack, pct)))
+    return 'h'
   }
 
-  function handlePointerUp(e) {
+  function endDrag(x, y) {
     if (!dragStart.current) return
-    const dx = e.clientX - dragStart.current.x
-    const dy = e.clientY - dragStart.current.y
+    const dx = x - dragStart.current.x
+    const dy = y - dragStart.current.y
     const tappedLine = dragStart.current.line
     const tappedWord = dragStart.current.word
     const wasHorizontal = axisLock.current === 'h'
@@ -217,7 +287,7 @@ export default function FullscreenView() {
 
     if (!wasHorizontal) {
       if (Math.abs(dx) <= TAP_THRESHOLD && Math.abs(dy) <= TAP_THRESHOLD) {
-        if (tappedLine !== null) toggleLineFavorite(tappedLine, tappedWord)
+        if (tappedLine !== null) handleTap(tappedLine, tappedWord)
         return
       }
       if (dy > 60 && Math.abs(dy) > Math.abs(dx) * 1.5) {
@@ -237,12 +307,21 @@ export default function FullscreenView() {
     }
   }
 
-  function handlePointerCancel() {
+  function cancelDrag() {
     restoreScroll()
     setDragging(false)
     dragStart.current = null
     axisLock.current = null
     if (trackX !== 0) resetTrack()
+  }
+
+  function handleTap(line, word) {
+    const now = Date.now()
+    const dbl = lastTapRef.current
+      && now - lastTapRef.current.time <= DOUBLE_TAP_MS
+      && lastTapRef.current.line === line
+    lastTapRef.current = { time: now, line }
+    if (dbl) toggleLineFavorite(line, word)
   }
 
   function handlePoemScroll() {
@@ -426,6 +505,7 @@ export default function FullscreenView() {
       {/* Track */}
       <div className="flex-1 relative overflow-hidden">
         <div
+          ref={trackRef}
           className="flex h-full"
           style={{
             width: '300%',
@@ -580,8 +660,9 @@ export default function FullscreenView() {
                               style={{
                                 backgroundColor: covered ? 'color-mix(in srgb, var(--tp-secondary) 12%, transparent)' : 'transparent',
                                 color: covered ? 'var(--tp-secondary)' : 'var(--tp-text)',
-                                borderRadius: '4px',
-                                padding: '1px 3px',
+                                borderRadius: covered ? '4px' : 0,
+                                padding: covered ? '1px 3px' : 0,
+                                transition: 'background-color 0.2s, color 0.2s',
                               }}
                             >
                               {tok}{wi < words.length - 1 ? ' ' : ''}
