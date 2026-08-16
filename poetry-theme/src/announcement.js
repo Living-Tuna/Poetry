@@ -2,10 +2,10 @@
 // type: one of 'logo' | 'announce' | 'note' | 'error' | 'bug' | 'fixed'
 const announcements = [
   {
-    id: '1-2-1',
+    id: '1.3.6',
     type: 'note',
-    heading: 'Language Info ',
-    description: 'The language helps store original translations. if some available,using page translators helps. we will soon roll out all language datasets as possible.',
+    heading: 'How to use Blendly',
+    description: 'scroll through the poems, double tap to like, and tap the share button to share your favorite poems with friends.',
   },
 ]
 
