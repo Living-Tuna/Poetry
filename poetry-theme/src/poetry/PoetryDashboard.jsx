@@ -67,7 +67,13 @@ export default function PoetryDashboard() {
     : []
   const randomFavorite = favorites.length > 0
     ? favorites[Math.floor(Math.random() * favorites.length)]
-    : null
+    : filteredPoems.length > 0
+      ? (() => {
+          const p = filteredPoems[Math.floor(Math.random() * filteredPoems.length)]
+          const lines = (p.content || '').split('\n').filter(l => l.trim())
+          return { sentenceText: lines[0] || p.title, poemTitle: p.title, author: p.author, date: p.created_at, key: `random-${p.id}` }
+        })()
+      : null
   const [bodyView, setBodyView] = useState('dashboard')
   const [slideOpen, setSlideOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
@@ -512,11 +518,12 @@ export default function PoetryDashboard() {
       >
         <div onClick={() => setSlideOpen(false)} style={{ backgroundColor: 'rgba(0,0,0,0.2)' }}>
           <div onClick={(e) => e.stopPropagation()}
-            className="overflow-y-auto"
+            className="overflow-y-auto mx-auto"
             style={{
               backgroundColor: 'var(--tp-header-bg)',
               color: 'var(--tp-header-text)',
               maxHeight: '90vh',
+              maxWidth: '28rem',
               borderRadius: '0 0 1.25rem 1.25rem',
               boxShadow: '0 8px 32px rgba(0,0,0,0.15)',
             }}

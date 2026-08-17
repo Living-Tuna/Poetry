@@ -89,29 +89,35 @@ export default function DashboardView({
     return () => { cancelled = true }
   }, [])
 
+  const hasFavorites = favorites && favorites.length > 0
+
   return (
     <div className="px-4 py-5 max-w-6xl mx-auto w-full space-y-8 md:space-y-0 md:grid md:grid-cols-2 md:items-start md:gap-6">
+
+      {/* ─── Announcement — full width ─── */}
       <div className="md:col-span-2"><AnnouncementBanner /></div>
 
+      {/* ─── Left: Favorite / Random poem ─── */}
       {favoriteQuote && (
         <section className="animate-fade-in md:col-start-1">
           <div className="flex items-center justify-between mb-3">
             <p className="text-sm font-bold flex items-center gap-1.5" style={{ color: 'var(--tp-text)' }}>
-              <HeartIcon size={16} /> {t('dashboard.favoriteLine')}
+              <HeartIcon size={16} /> {hasFavorites ? t('dashboard.favoriteLine') : t('dashboard.discoverCreate')}
             </p>
-            {favorites.length > 1 && (
+            {hasFavorites && favorites.length > 1 && (
               <span className="text-xs" style={{ color: 'var(--tp-text-secondary)' }}>{t('dashboard.swipeCard')}</span>
             )}
           </div>
           <ShareQuoteModal
             inline
             favorite={favoriteQuote}
-            favorites={favorites}
-            initialIndex={favorites.indexOf(favoriteQuote)}
+            favorites={hasFavorites ? favorites : [favoriteQuote]}
+            initialIndex={hasFavorites ? favorites.indexOf(favoriteQuote) : 0}
           />
         </section>
       )}
 
+      {/* ─── Right: Welcome / Discover-Create + Stats ─── */}
       <div className="text-center animate-fade-in md:col-start-2">
         {user ? (
           <>
@@ -174,6 +180,7 @@ export default function DashboardView({
         </div>
       </div>
 
+      {/* ─── Left: My Bookshelf ─── */}
       <button onClick={() => onNavigate('shelf')}
         className="w-full text-left rounded-xl p-4 animate-fade-in transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] md:col-start-1"
         style={{ backgroundColor: 'var(--tp-surface)', border: '1.5px solid var(--tp-border)', boxShadow: 'var(--tp-card-shadow)' }}>
@@ -192,26 +199,9 @@ export default function DashboardView({
         </div>
       </button>
 
-      <button onClick={() => onNavigate('blend')}
-        className="w-full text-left rounded-xl p-4 animate-fade-in transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] md:col-start-2"
-        style={{ backgroundColor: 'var(--tp-surface)', border: '1.5px solid var(--tp-border)', boxShadow: 'var(--tp-card-shadow)' }}>
-        <div className="flex items-start gap-3">
-          <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
-            style={{ backgroundColor: 'color-mix(in srgb, var(--tp-secondary) 15%, transparent)', color: 'var(--tp-secondary)' }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" /><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" /></svg>
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-bold" style={{ color: 'var(--tp-text)' }}>{t('dashboard.needBook')}</p>
-            <p className="text-xs mt-0.5 leading-relaxed" style={{ color: 'var(--tp-text-secondary)' }}>
-              {t('dashboard.blendPromo')}
-            </p>
-          </div>
-          <svg width="16" height="16" className="mt-1 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--tp-text-secondary)' }}><path d="M9 18l6-6-6-6" /></svg>
-        </div>
-      </button>
-
+      {/* ─── Right: Books Near Me ─── */}
       {nearby && nearby.length > 0 && (
-        <section className="animate-fade-in md:col-start-1">
+        <section className="animate-fade-in md:col-start-2">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-sm font-bold flex items-center gap-1.5" style={{ color: 'var(--tp-text)' }}>
               <BookIcon size={16} /> {t('dashboard.booksNearYou')}
@@ -259,6 +249,26 @@ export default function DashboardView({
         </section>
       )}
 
+      {/* ─── Left: Need a Book (Blend) ─── */}
+      <button onClick={() => onNavigate('blend')}
+        className="w-full text-left rounded-xl p-4 animate-fade-in transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] md:col-start-1"
+        style={{ backgroundColor: 'var(--tp-surface)', border: '1.5px solid var(--tp-border)', boxShadow: 'var(--tp-card-shadow)' }}>
+        <div className="flex items-start gap-3">
+          <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+            style={{ backgroundColor: 'color-mix(in srgb, var(--tp-secondary) 15%, transparent)', color: 'var(--tp-secondary)' }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" /><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" /></svg>
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-bold" style={{ color: 'var(--tp-text)' }}>{t('dashboard.needBook')}</p>
+            <p className="text-xs mt-0.5 leading-relaxed" style={{ color: 'var(--tp-text-secondary)' }}>
+              {t('dashboard.blendPromo')}
+            </p>
+          </div>
+          <svg width="16" height="16" className="mt-1 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--tp-text-secondary)' }}><path d="M9 18l6-6-6-6" /></svg>
+        </div>
+      </button>
+
+      {/* ─── Right: Newsletter ─── */}
       <section className="animate-fade-in md:col-start-2">
         <div className="rounded-xl p-4" style={{ backgroundColor: 'var(--tp-surface)', border: '1.5px solid var(--tp-border)', boxShadow: 'var(--tp-card-shadow)' }}>
           <h3 className="text-sm font-bold flex items-center gap-1.5" style={{ color: 'var(--tp-text)' }}>
@@ -297,6 +307,7 @@ export default function DashboardView({
         </div>
       </section>
 
+      {/* ─── Left: Recently Viewed ─── */}
       {recentlyViewed.length > 0 && (
         <section className="animate-fade-in md:col-start-1">
           <div className="flex items-center justify-between mb-3">
@@ -317,8 +328,61 @@ export default function DashboardView({
         </section>
       )}
 
-      {trending.length > 0 && (
+      {/* ─── Right: My Writings ─── */}
       <section className="animate-fade-in md:col-start-2">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <h3 className="text-sm font-bold flex items-center gap-1.5" style={{ color: 'var(--tp-text)' }}>
+              <PenIcon size={16} /> {t('dashboard.myWritings')}</h3>
+            {user && <DataIndicator cachedOnly={myPoemsCachedOnly} size={10} />}
+          </div>
+          <button onClick={onNewPoem}
+            className="text-xs px-3 py-1 rounded-lg font-medium transition-all hover:opacity-70"
+            style={{ color: 'var(--tp-secondary)', backgroundColor: 'color-mix(in srgb, var(--tp-secondary) 15%, transparent)' }}>
+            {t('dashboard.new')}
+          </button>
+        </div>
+        {myPoems.length === 0 ? (
+          <div className="rounded-xl p-4 text-center" style={{ backgroundColor: 'var(--tp-surface)', border: '1.5px dashed var(--tp-border)' }}>
+            <p className="text-xs" style={{ color: 'var(--tp-text-secondary)' }}>{t('dashboard.noWritingsTap')}</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {myPoems.slice(0, 4).map((p) => (
+              <button key={p.id} onClick={() => navigateToPoem(p)}
+                className="w-full text-left rounded-xl p-3.5 transition-all duration-200 hover:scale-[1.01]"
+                style={{ backgroundColor: 'var(--tp-surface)', border: '1.5px solid var(--tp-border)', boxShadow: 'var(--tp-card-shadow)' }}>
+                <p className="text-sm font-bold truncate" style={{ color: 'var(--tp-text)', fontFamily: '"Playfair Display", serif' }}>{p.title}</p>
+                <div className="flex items-center justify-between mt-1">
+                  <p className="text-[10px]" style={{ color: 'var(--tp-text-secondary)' }}>{p.createdAt}</p>
+                  <span className="text-[10px]" style={{ color: 'var(--tp-text-secondary)' }}>{t('common.byAuthor', { author: p.author })}</span>
+                </div>
+              </button>
+            ))}
+            {myPoems.length > 4 && (
+              <button onClick={() => onNavigate('my-writings')}
+                className="w-full text-center text-xs py-2 rounded-xl transition-colors"
+                style={{ color: 'var(--tp-secondary)' }}>
+                {t('dashboard.viewAllWritings', { count: myPoems.length })}
+              </button>
+            )}
+          </div>
+        )}
+      </section>
+
+      {/* ─── Left: Start Reading ─── */}
+      <section className="animate-fade-in md:col-start-1">
+        <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-bold flex items-center gap-1.5" style={{ color: 'var(--tp-text)' }}>
+              <BookIcon size={16} /> {t('dashboard.startReading')}</h3>
+          <span className="text-xs" style={{ color: 'var(--tp-text-secondary)' }}>{t('dashboard.swipeToExplore')}</span>
+        </div>
+        <PoetryCard />
+      </section>
+
+      {/* ─── Full width: Trending Poems ─── */}
+      {trending.length > 0 && (
+      <section className="animate-fade-in md:col-span-2">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-bold flex items-center gap-1.5" style={{ color: 'var(--tp-text)' }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 1 1.133 1 2.867 1 4a5.5 5.5 0 0 1-11 0z" /></svg>
@@ -364,79 +428,45 @@ export default function DashboardView({
       </section>
       )}
 
+      {/* ─── Full width: Latest Poems — center heading, two-column layout ─── */}
       {latest.length > 0 && (
-        <section className="animate-fade-in md:col-start-1">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-bold flex items-center gap-1.5" style={{ color: 'var(--tp-text)' }}>
-              <ClockIcon size={16} /> {t('dashboard.latestPoems')}</h3>
-          </div>
-          <div className="space-y-2">
-            {latest.map((p) => (
-              <button key={p.id} onClick={() => navigateToPoem(p)}
-                className="w-full text-left rounded-xl p-3.5 transition-all duration-200 hover:scale-[1.01]"
-                style={{ backgroundColor: 'var(--tp-surface)', border: '1.5px solid var(--tp-border)', boxShadow: 'var(--tp-card-shadow)' }}>
-                <p className="text-sm font-bold truncate" style={{ color: 'var(--tp-text)', fontFamily: '"Playfair Display", serif' }}>{p.title}</p>
-                <div className="flex items-center justify-between mt-1">
-                  <p className="text-[10px]" style={{ color: 'var(--tp-text-secondary)' }}>{p.created_at ? new Date(p.created_at).toLocaleDateString(lang || 'en-US') : ''}</p>
-                  <span className="text-[10px]" style={{ color: 'var(--tp-text-secondary)' }}>{t('common.byAuthor', { author: p.author })}</span>
-                </div>
-              </button>
-            ))}
+        <section className="animate-fade-in md:col-span-2">
+          <h3 className="text-sm font-bold flex items-center justify-center gap-1.5 mb-3" style={{ color: 'var(--tp-text)' }}>
+            <ClockIcon size={16} /> {t('dashboard.latestPoems')}
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="space-y-2">
+              {latest.slice(0, Math.ceil(latest.length / 2)).map((p) => (
+                <button key={p.id} onClick={() => navigateToPoem(p)}
+                  className="w-full text-left rounded-xl p-3.5 transition-all duration-200 hover:scale-[1.01]"
+                  style={{ backgroundColor: 'var(--tp-surface)', border: '1.5px solid var(--tp-border)', boxShadow: 'var(--tp-card-shadow)' }}>
+                  <p className="text-sm font-bold truncate" style={{ color: 'var(--tp-text)', fontFamily: '"Playfair Display", serif' }}>{p.title}</p>
+                  <div className="flex items-center justify-between mt-1">
+                    <p className="text-[10px]" style={{ color: 'var(--tp-text-secondary)' }}>{p.created_at ? new Date(p.created_at).toLocaleDateString(lang || 'en-US') : ''}</p>
+                    <span className="text-[10px]" style={{ color: 'var(--tp-text-secondary)' }}>{t('common.byAuthor', { author: p.author })}</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+            <div className="space-y-2">
+              {latest.slice(Math.ceil(latest.length / 2)).map((p) => (
+                <button key={p.id} onClick={() => navigateToPoem(p)}
+                  className="w-full text-left rounded-xl p-3.5 transition-all duration-200 hover:scale-[1.01]"
+                  style={{ backgroundColor: 'var(--tp-surface)', border: '1.5px solid var(--tp-border)', boxShadow: 'var(--tp-card-shadow)' }}>
+                  <p className="text-sm font-bold truncate" style={{ color: 'var(--tp-text)', fontFamily: '"Playfair Display", serif' }}>{p.title}</p>
+                  <div className="flex items-center justify-between mt-1">
+                    <p className="text-[10px]" style={{ color: 'var(--tp-text-secondary)' }}>{p.created_at ? new Date(p.created_at).toLocaleDateString(lang || 'en-US') : ''}</p>
+                    <span className="text-[10px]" style={{ color: 'var(--tp-text-secondary)' }}>{t('common.byAuthor', { author: p.author })}</span>
+                  </div>
+                </button>
+              ))}
+            </div>
           </div>
         </section>
       )}
 
-      <section className="animate-fade-in md:col-start-2">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <h3 className="text-sm font-bold flex items-center gap-1.5" style={{ color: 'var(--tp-text)' }}>
-              <PenIcon size={16} /> {t('dashboard.myWritings')}</h3>
-            {user && <DataIndicator cachedOnly={myPoemsCachedOnly} size={10} />}
-          </div>
-          <button onClick={onNewPoem}
-            className="text-xs px-3 py-1 rounded-lg font-medium transition-all hover:opacity-70"
-            style={{ color: 'var(--tp-secondary)', backgroundColor: 'color-mix(in srgb, var(--tp-secondary) 15%, transparent)' }}>
-            {t('dashboard.new')}
-          </button>
-        </div>
-        {myPoems.length === 0 ? (
-          <div className="rounded-xl p-4 text-center" style={{ backgroundColor: 'var(--tp-surface)', border: '1.5px dashed var(--tp-border)' }}>
-            <p className="text-xs" style={{ color: 'var(--tp-text-secondary)' }}>{t('dashboard.noWritingsTap')}</p>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {myPoems.slice(0, 4).map((p) => (
-              <button key={p.id} onClick={() => navigateToPoem(p)}
-                className="w-full text-left rounded-xl p-3.5 transition-all duration-200 hover:scale-[1.01]"
-                style={{ backgroundColor: 'var(--tp-surface)', border: '1.5px solid var(--tp-border)', boxShadow: 'var(--tp-card-shadow)' }}>
-                <p className="text-sm font-bold truncate" style={{ color: 'var(--tp-text)', fontFamily: '"Playfair Display", serif' }}>{p.title}</p>
-                <div className="flex items-center justify-between mt-1">
-                  <p className="text-[10px]" style={{ color: 'var(--tp-text-secondary)' }}>{p.createdAt}</p>
-                  <span className="text-[10px]" style={{ color: 'var(--tp-text-secondary)' }}>{t('common.byAuthor', { author: p.author })}</span>
-                </div>
-              </button>
-            ))}
-            {myPoems.length > 4 && (
-              <button onClick={() => onNavigate('my-writings')}
-                className="w-full text-center text-xs py-2 rounded-xl transition-colors"
-                style={{ color: 'var(--tp-secondary)' }}>
-                {t('dashboard.viewAllWritings', { count: myPoems.length })}
-              </button>
-            )}
-          </div>
-        )}
-      </section>
-
-      <section className="animate-fade-in md:col-start-1">
-        <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-bold flex items-center gap-1.5" style={{ color: 'var(--tp-text)' }}>
-              <BookIcon size={16} /> {t('dashboard.startReading')}</h3>
-          <span className="text-xs" style={{ color: 'var(--tp-text-secondary)' }}>{t('dashboard.swipeToExplore')}</span>
-        </div>
-        <PoetryCard />
-      </section>
-
-      <div className="pt-4 pb-2 md:col-start-2" style={{ borderTop: '1px solid var(--tp-border)' }}>
+      {/* ─── Full width: Footer at very bottom ─── */}
+      <div className="pt-6 pb-2 md:col-span-2" style={{ borderTop: '1px solid var(--tp-border)' }}>
         <LegalLinks onNavigate={onNavigate} />
       </div>
 
