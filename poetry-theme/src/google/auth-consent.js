@@ -1,4 +1,4 @@
-import { supabase } from '../supabase/client'
+import { supabase, supabaseUrlRef } from '../supabase/client'
 import { GOOGLE_CLIENT_ID } from './clientId'
 
 // Manages the Google consent flow end-to-end:
@@ -6,8 +6,10 @@ import { GOOGLE_CLIENT_ID } from './clientId'
 //      via Supabase Auth. Supabase signs the user in if the account exists,
 //      or silently creates a new one on first Google sign-in.
 //   2. completeGoogleSignIn() -> called once on app load after returning
-//      from Google; promotes the tokens in the URL hash into a real
-//      Supabase session (detectSessionInUrl is disabled in our client).
+//      from Google; exchanges the single-use ?code= (PKCE) or promotes
+//      legacy #access_token= hashes into a real Supabase session, then
+//      scrubs the credentials out of the address bar
+//      (detectSessionInUrl is disabled in our client).
 
 const OAUTH_ERROR_MESSAGES = {
   access_denied: 'Google sign-in was cancelled',
@@ -19,6 +21,45 @@ function hashParams() {
   const raw = typeof window === 'undefined' ? '' : window.location.hash || ''
   return new URLSearchParams(raw.startsWith('#') ? raw.slice(1) : raw)
 }
+
+// --- PKCE flow: Google returns ?code=<single-use> in the query string ---
+
+function pkceVerifierPending() {
+  try {
+    if (typeof localStorage === 'undefined' || !supabaseUrlRef) return false
+    return !!localStorage.getItem(`sb-${supabaseUrlRef}-auth-token-code-verifier`)
+  } catch {
+    return false
+  }
+}
+
+function stripQueryParam(name) {
+  if (typeof window === 'undefined') return
+  const url = new URL(window.location.href)
+  url.searchParams.delete(name)
+  const query = url.searchParams.toString()
+  window.history.replaceState(null, '', url.pathname + (query ? `?${query}` : '') + url.hash)
+}
+
+async function completePkceSignIn() {
+  if (typeof window === 'undefined') return null
+  const code = new URLSearchParams(window.location.search).get('code')
+  // Only attempt an exchange when we actually started a PKCE flow,
+  // so random ?code= links never trigger failed logins.
+  if (!code || !pkceVerifierPending()) return null
+
+  console.log('[GOOGLE] exchanging PKCE code for a session')
+  const { data, error } = await supabase.auth.exchangeCodeForSession(code)
+  stripQueryParam('code')
+  if (error) {
+    console.log('[GOOGLE] PKCE exchange failed:', error.message)
+    return { ok: false, error: error.message }
+  }
+  console.log('[GOOGLE] signed in via Google (PKCE)')
+  return { ok: true, user: data?.user ?? null }
+}
+
+// --- Implicit flow fallback: tokens arrive in the URL hash ---------------
 
 export function isGoogleRedirectPending() {
   if (typeof window === 'undefined') return false
@@ -38,7 +79,7 @@ export async function signInWithGoogle({ redirectTo } = {}) {
     console.log('[GOOGLE] missing client id')
     return { ok: false, error: 'Google sign-in is not configured' }
   }
-  console.log('[GOOGLE] starting OAuth — client id:', GOOGLE_CLIENT_ID.slice(0, 12) + '...')
+  console.log('[GOOGLE] starting PKCE OAuth — client id:', GOOGLE_CLIENT_ID.slice(0, 12) + '...')
   const { error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
@@ -55,6 +96,8 @@ export async function signInWithGoogle({ redirectTo } = {}) {
 }
 
 export async function completeGoogleSignIn() {
+  const pkce = await completePkceSignIn()
+  if (pkce) return pkce
   if (!isGoogleRedirectPending()) return { ok: false, ignored: true }
 
   const params = hashParams()

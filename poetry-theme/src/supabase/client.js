@@ -3,16 +3,23 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
 
+export const supabaseUrlRef = supabaseUrl
+  ? supabaseUrl.split('//')[1]?.split('.')[0]
+  : ''
+
 export const supabase = createClient(supabaseUrl, supabaseKey, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,
+    // PKCE: OAuth/email callbacks return a single-use ?code= instead of
+    // long-lived tokens in the URL fragment.
+    flowType: 'pkce',
   },
 })
 
-const AUTH_STORAGE_KEY = supabaseUrl
-  ? `sb-${supabaseUrl.split('//')[1]?.split('.')[0]}-auth-token`
+const AUTH_STORAGE_KEY = supabaseUrlRef
+  ? `sb-${supabaseUrlRef}-auth-token`
   : ''
 
 export function readCachedSession() {
