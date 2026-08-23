@@ -17,8 +17,23 @@ const OAUTH_ERROR_MESSAGES = {
   redirect_uri_mismatch: 'This address is not allowed for Google sign-in',
 }
 
+// Snapshot of the address bar at module import time — i.e. before React
+// Router mounts. The "/" route rewrites the URL to /{lang} during the very
+// first render, which would strip the single-use ?code= before the
+// exchange effect runs, so every later read must use this snapshot.
+const INITIAL_URL = typeof window !== 'undefined' ? window.location.href : ''
+
+function callbackUrl() {
+  if (typeof window === 'undefined') return null
+  try {
+    return new URL(INITIAL_URL || window.location.href)
+  } catch {
+    return null
+  }
+}
+
 function hashParams() {
-  const raw = typeof window === 'undefined' ? '' : window.location.hash || ''
+  const raw = callbackUrl()?.hash || window.location.hash || ''
   return new URLSearchParams(raw.startsWith('#') ? raw.slice(1) : raw)
 }
 
@@ -43,7 +58,7 @@ function stripQueryParam(name) {
 
 async function completePkceSignIn() {
   if (typeof window === 'undefined') return null
-  const code = new URLSearchParams(window.location.search).get('code')
+  const code = callbackUrl()?.searchParams.get('code') ?? null
   // Only attempt an exchange when we actually started a PKCE flow,
   // so random ?code= links never trigger failed logins.
   if (!code || !pkceVerifierPending()) return null

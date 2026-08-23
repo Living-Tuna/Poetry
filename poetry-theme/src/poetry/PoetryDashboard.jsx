@@ -7,6 +7,7 @@ import Settings from './Settings'
 import Header from './components/Header'
 import MenuModal from './components/MenuModal'
 import AuthForms from './components/AuthForms'
+import GoogleSetup from './components/GoogleSetup'
 import CompactProfile from './components/CompactProfile'
 import PersonProfile from './components/PersonProfile'
 import { btnWhite } from './components/AuthForms'
@@ -37,7 +38,7 @@ import { applySeo, poemJsonLd, PAGE_SEO, poemUrl, slugify, SITE_URL } from '../s
 
 export default function PoetryDashboard() {
   const { t } = useLanguage()
-  const { user, login, logout, signup, checkUsername,
+  const { user, loading: authLoading, login, logout, signup, checkUsername,
           getUserSecurityQuestion, resetPassword } = useAuth()
   const {
     resetQueue, favorites, clearFavorites, fullscreen, closeFullscreen,
@@ -206,6 +207,16 @@ export default function PoetryDashboard() {
   function openSignup() { setAuthMode('signup'); setAError(''); setSignupStep(0); setASuggestions([]); setAUsername(''); setAName(''); setAPassword(''); setARetype(''); setAQuestion(''); setAAnswer(''); setACountry(localStorage.getItem('poetry_country') || ''); setAState(localStorage.getItem('poetry_state') || ''); setAZip(localStorage.getItem('poetry_zip') || '') }
   function openLogin() { setAuthMode('login'); setAError('') }
   function openForgot() { setAuthMode('forgot'); setAError('') }
+
+  // Google sign-ins create accounts without a username — prompt the user
+  // to finish setting up their profile once, right after they land back.
+  useEffect(() => {
+    if (authLoading) return
+    if (user && !user.username) {
+      setAuthMode('google_setup')
+      setSlideOpen(true)
+    }
+  }, [user, authLoading])
 
   async function handleLogin(e) {
     e?.preventDefault()
@@ -564,7 +575,11 @@ export default function PoetryDashboard() {
               />
             )}
 
-            {user && (
+            {user && authMode === 'google_setup' && (
+              <GoogleSetup user={user} onClose={closeSlide} />
+            )}
+
+            {user && authMode !== 'google_setup' && (
               <CompactProfile
                 user={user} myPoems={myPoems} favorites={favorites}
                 myPoemsCachedOnly={myPoemsCachedOnly}

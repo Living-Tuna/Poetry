@@ -158,6 +158,13 @@ export const EN = {
   'auth.enterUsernameErr': 'Enter your username',
   'auth.enterAnswerErr': 'Enter your answer',
   'auth.createAccountPrompt': 'Already have an account? Sign in',
+  // post-Google sign-in profile completion
+  'auth.googleSetupTitle': 'Complete your profile',
+  'auth.signedInAs': 'Signed in as {email}',
+  'auth.locationRequiredShort': 'Your location is required — pick your country and enter your ZIP / PIN code.',
+  'auth.finishSetup': 'Finish Setup',
+  'auth.finishing': 'Finishing...',
+  'auth.profileReady': "You're all set — welcome to Poetry!",
   'auth.stepChooseUsername': 'Choose Username',
   'auth.stepSetYourName': 'Set Your Name',
   'auth.stepSetLocation': 'Set Location',
