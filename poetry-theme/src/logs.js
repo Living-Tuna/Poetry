@@ -1,5 +1,13 @@
 const logs = [
   {
+    versionCode: '1.5.0',
+    date: 'August 2026',
+    features: [
+      'Sign in with Google arrives on the sign-in screen — one tap on the Google button and one approval on the consent screen gets you straight into your account',
+      'No account yet? The first Google sign-in creates one automatically — no username, password, or security question needed',
+    ],
+  },
+  {
     versionCode: '1.4.0',
     date: 'August 2026',
     features: [

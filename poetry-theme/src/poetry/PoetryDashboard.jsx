@@ -40,7 +40,7 @@ export default function PoetryDashboard() {
   const { user, login, logout, signup, checkUsername,
           getUserSecurityQuestion, resetPassword } = useAuth()
   const {
-    resetQueue, favorites, clearFavorites, fullscreen,
+    resetQueue, favorites, clearFavorites, fullscreen, closeFullscreen,
     openFullscreen, navigateToPoem, myPoems, addMyPoem, updateMyPoem, deleteMyPoem,
     editRequest, setEditRequest, recentlyViewed, allPoems, currentPoem,
     editOnOpen, setEditOnOpen, myPoemsCachedOnly,
@@ -147,6 +147,18 @@ export default function PoetryDashboard() {
     else if (seg === 'about') setBodyView('about')
     else if (seg) navigate(`/${localStorage.getItem('poetry_lang') || 'en'}`)
   }, [location.pathname, location.search, navigate, changeLanguage])
+
+  useEffect(() => {
+    if (!fullscreen) return
+    function handlePop() { closeFullscreen() }
+    window.addEventListener('popstate', handlePop)
+    return () => window.removeEventListener('popstate', handlePop)
+  }, [fullscreen, closeFullscreen])
+
+  function handleClosePoem() {
+    closeFullscreen()
+    navigate(`/${lang}`)
+  }
 
   useEffect(() => {
     if (!deepPoemId || loading || !allPoems.length || fullscreen) return
@@ -469,7 +481,7 @@ export default function PoetryDashboard() {
     setBodyView('category-poems')
   }
 
-  if (fullscreen) return <FullscreenView />
+  if (fullscreen) return <FullscreenView onClose={handleClosePoem} />
 
   function scrollTrending(dir) {
     if (!trendingScroll.current) return

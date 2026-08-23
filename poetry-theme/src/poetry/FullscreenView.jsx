@@ -2,7 +2,8 @@ import { useRef, useState, useEffect, useLayoutEffect } from 'react'
 import { usePoetry } from './PoetryContext'
 import { useLanguage } from '../language/LanguageProvider'
 import { CloseIcon, StarIcon } from './components/Icons'
-import { isIndependentPoem } from '../constants'
+import { isIndependentPoem, shareText } from '../constants'
+import { poemUrl } from '../seo/seo'
 
 const CATEGORIES = ['Love', 'Nature', 'Philosophy', 'Tragedy', 'Hope', 'Spirituality', 'Freedom', 'War', 'Death', 'Joy', 'Reflection', 'Fantasy']
 const SWIPE_THRESHOLD = 40
@@ -44,7 +45,7 @@ function favFlatRange(f, lines) {
   return [flatIndexOf(lines, f.startLine, startWi), flatIndexOf(lines, f.endLine, endWi)]
 }
 
-export default function FullscreenView() {
+export default function FullscreenView({ onClose }) {
   const {
     currentPoem, closeFullscreen,
     swipeRight, swipeLeft, enqueueNext,
@@ -56,6 +57,8 @@ export default function FullscreenView() {
     hasLiked, toggleLikePoem,
   } = usePoetry()
   const { t } = useLanguage()
+
+  const handleClose = onClose || closeFullscreen
 
   const userPoem = isUserPoem(currentPoem)
   const lines = currentPoem?.content?.split('\n')?.filter(Boolean) || []
@@ -127,7 +130,7 @@ export default function FullscreenView() {
 
   useEffect(() => {
     function handleKey(e) {
-      if (e.key === 'Escape') closeFullscreen()
+      if (e.key === 'Escape') handleClose()
       if (e.key === 'ArrowRight' && canSwipeRight) swipeRight()
       if (e.key === 'ArrowLeft' && canSwipeLeft) swipeLeft()
     }
@@ -137,7 +140,7 @@ export default function FullscreenView() {
       window.removeEventListener('keydown', handleKey)
       document.body.style.overflow = ''
     }
-  }, [closeFullscreen, swipeRight, swipeLeft, canSwipeRight, canSwipeLeft])
+  }, [handleClose, swipeRight, swipeLeft, canSwipeRight, canSwipeLeft])
 
   function goNext() {
     if (animating || !canSwipeRight) return
@@ -297,7 +300,7 @@ export default function FullscreenView() {
       }
       if (dy > 60 && Math.abs(dy) > Math.abs(dx) * 1.5) {
         if (dragAtTopRef.current) {
-          closeFullscreen()
+          handleClose()
           return
         }
       }
@@ -417,7 +420,7 @@ export default function FullscreenView() {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ backgroundColor: 'var(--tp-bg)' }}>
         <p style={{ color: 'var(--tp-text-secondary)' }}>{t('poetry.noPoemSelected')}</p>
-        <button onClick={closeFullscreen} className="absolute top-6 right-6 p-2 rounded-xl" style={{ color: 'var(--tp-text)' }}><CloseIcon size={20} /></button>
+        <button onClick={handleClose} className="absolute top-6 right-6 p-2 rounded-xl" style={{ color: 'var(--tp-text)' }}><CloseIcon size={20} /></button>
       </div>
     )
   }
@@ -438,7 +441,7 @@ export default function FullscreenView() {
       >
         <div className="flex items-center gap-1.5 flex-shrink-0">
           <button
-            onClick={closeFullscreen}
+            onClick={handleClose}
             className="p-1.5 rounded-xl transition-opacity hover:opacity-70"
             style={{ color: 'var(--tp-text-secondary)' }}
             aria-label={t('common.close')}
@@ -473,6 +476,25 @@ export default function FullscreenView() {
           {currentPoem?.title}
         </h2>
         <div className="flex items-center gap-2 flex-shrink-0">
+          <button
+            onClick={() => {
+              const url = poemUrl(currentPoem)
+              const text = `${currentPoem.title} — ${currentPoem.author || ''}\n${shareText()}`
+              if (navigator.share) {
+                navigator.share({ title: currentPoem.title, text, url }).catch(() => {})
+              } else {
+                navigator.clipboard.writeText(url).catch(() => {})
+              }
+            }}
+            className="p-1.5 rounded-xl transition-all hover:scale-110 active:scale-90"
+            style={{ color: 'var(--tp-text-secondary)' }}
+            aria-label={t('common.share')}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
+              <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+            </svg>
+          </button>
           <span className="text-xs tabular-nums flex items-center gap-2" style={{ color: 'var(--tp-text-secondary)' }}>
             <span className="flex items-center gap-0.5"><StarIcon size={12} /> {markedCount}</span>
             <span>{t('poetry.lines', { count: lines.length })}</span>

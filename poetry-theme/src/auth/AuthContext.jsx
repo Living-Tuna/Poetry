@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { supabase, readCachedSession } from '../supabase/client'
+import { completeGoogleSignIn } from '../google/auth-consent'
 import { translate } from '../language/translator'
 import {
   apiLogin, apiSignup, apiCheckUsername,
@@ -29,9 +30,13 @@ export function AuthProvider({ children }) {
   const lastSignup = useRef(0)
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) setUser(sessionToUser(session.user))
-      setLoading(false)
+    // Finish a Google consent redirect first (tokens arrive in the URL hash
+    // and detectSessionInUrl is off); setSession below fires SIGNED_IN.
+    completeGoogleSignIn().finally(() => {
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session?.user) setUser(sessionToUser(session.user))
+        setLoading(false)
+      })
     })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
