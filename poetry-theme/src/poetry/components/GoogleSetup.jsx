@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { supabase, hashAnswer } from '../../supabase/client'
+import { supabase } from '../../supabase/client'
 import { useAuth } from '../../auth/AuthContext'
 import { useLanguage } from '../../language/LanguageProvider'
 import { btnWhite } from './AuthForms'
@@ -28,8 +28,9 @@ function GoogleIcon() {
 }
 
 // Post-Google sign-in wizard: a fresh Google account has no username,
-// display name, location or security question yet, so ask for them here
+// display name or location yet, so ask for them here
 // and write everything into the Supabase user metadata.
+// Security question is NOT required for Google sign-ins.
 export default function GoogleSetup({ user, onClose }) {
   const { t } = useLanguage()
   const { checkUsername } = useAuth()
@@ -39,8 +40,6 @@ export default function GoogleSetup({ user, onClose }) {
   const [country, setCountry] = useState(localStorage.getItem('poetry_country') || '')
   const [state, setState] = useState(localStorage.getItem('poetry_state') || '')
   const [zip, setZip] = useState(localStorage.getItem('poetry_zip') || '')
-  const [question, setQuestion] = useState('')
-  const [answer, setAnswer] = useState('')
   const [busy, setBusy] = useState(false)
   const [suggestions, setSuggestions] = useState([])
   const [error, setError] = useState('')
@@ -50,13 +49,11 @@ export default function GoogleSetup({ user, onClose }) {
     t('auth.stepChooseUsername'),
     t('auth.stepSetYourName'),
     t('auth.stepSetLocation'),
-    t('auth.stepSecurityQuestion'),
   ]
   const progressLabels = [
     t('auth.progressUsername'),
     t('auth.progressName'),
     t('auth.progressLocation'),
-    t('auth.progressSecurity'),
   ]
 
   async function handleCheckUsername() {
@@ -74,17 +71,13 @@ export default function GoogleSetup({ user, onClose }) {
 
   async function handleFinish() {
     setError('')
-    if (!question.trim() || !answer.trim()) { setError(t('auth.fillSecurityQA')); return }
     setBusy(true)
     try {
-      const answerHash = await hashAnswer(answer)
       const { error: updateError } = await supabase.auth.updateUser({
         data: {
           username: username.trim().toLowerCase(),
           name: name.trim(),
           display_name: name.trim(),
-          security_question: question.trim(),
-          security_answer_hash: answerHash,
           country, state, zip,
         },
       })
@@ -176,11 +169,17 @@ export default function GoogleSetup({ user, onClose }) {
           <div className="flex gap-2">
             <button type="button" onClick={() => { setStep(0); setError('') }}
               style={{ ...btnWhite, flex: 1, opacity: 0.7 }}>{t('common.back')}</button>
-            <button type="button" disabled={!name.trim()} onClick={() => { if (name.trim()) setStep(2) }}
+            <button type="button" disabled={!name.trim()} onClick={() => setStep(2)}
               style={{ ...btnWhite, flex: 1 }}
               onMouseEnter={(e) => e.target.style.opacity = '0.85'}
               onMouseLeave={(e) => e.target.style.opacity = '1'}>{t('common.next')}</button>
           </div>
+          <button type="button" onClick={handleFinish} disabled={busy}
+            style={{ ...btnWhite, opacity: 0.6, fontSize: '0.75rem', padding: '0.5rem' }}
+            onMouseEnter={(e) => e.target.style.opacity = '0.5'}
+            onMouseLeave={(e) => e.target.style.opacity = '0.6'}>
+            {t('common.skip')}
+          </button>
         </div>
       )}
 
@@ -192,38 +191,23 @@ export default function GoogleSetup({ user, onClose }) {
             zip={zip} setZip={setZip}
             inputStyle={inputStyle} onInputFocus={inputFocus} onInputBlur={inputBlur}
           />
-          {(!country.trim() || !state.trim() || !zip.trim()) && (
-            <p className="text-xs" style={{ color: 'rgba(255,255,255,0.6)' }}>{t('auth.locationRequiredShort')}</p>
-          )}
           {error && <p className="text-xs text-center" style={{ color: '#fbbf24' }}>{error}</p>}
           <div className="flex gap-2">
             <button type="button" onClick={() => { setStep(1); setError('') }}
               style={{ ...btnWhite, flex: 1, opacity: 0.7 }}>{t('common.back')}</button>
-            <button type="button" disabled={!country.trim() || !state.trim() || !zip.trim()}
-              onClick={() => { if (country.trim() && state.trim() && zip.trim()) setStep(3) }}
+            <button type="button" disabled={busy} onClick={handleFinish}
               style={{ ...btnWhite, flex: 1 }}
               onMouseEnter={(e) => e.target.style.opacity = '0.85'}
-              onMouseLeave={(e) => e.target.style.opacity = '1'}>{t('common.next')}</button>
+              onMouseLeave={(e) => e.target.style.opacity = '1'}>
+              {busy ? t('auth.finishing') : t('auth.finishSetup')}
+            </button>
           </div>
-        </div>
-      )}
-
-      {step === 3 && (
-        <div className="space-y-3">
-          <input value={question} onChange={(e) => { setQuestion(e.target.value); setError('') }}
-            placeholder={t('auth.securityQuestionExample')} style={inputStyle}
-            onFocus={inputFocus} onBlur={inputBlur} autoFocus />
-          <input value={answer} onChange={(e) => { setAnswer(e.target.value); setError('') }}
-            placeholder={t('auth.yourAnswer')} style={inputStyle}
-            onFocus={inputFocus} onBlur={inputBlur} />
-          {error && <p className="text-xs text-center" style={{ color: '#fbbf24' }}>{error}</p>}
-          <button type="button" disabled={busy || !question.trim() || !answer.trim()} onClick={handleFinish} style={btnWhite}
-            onMouseEnter={(e) => e.target.style.opacity = '0.85'}
-            onMouseLeave={(e) => e.target.style.opacity = '1'}>
-            {busy ? t('auth.finishing') : t('auth.finishSetup')}
+          <button type="button" onClick={handleFinish} disabled={busy}
+            style={{ ...btnWhite, opacity: 0.6, fontSize: '0.75rem', padding: '0.5rem' }}
+            onMouseEnter={(e) => e.target.style.opacity = '0.5'}
+            onMouseLeave={(e) => e.target.style.opacity = '0.6'}>
+            {t('common.skip')}
           </button>
-          <button type="button" disabled={busy} onClick={() => { setStep(2); setError('') }}
-            style={{ ...btnWhite, opacity: 0.7 }}>{t('common.back')}</button>
         </div>
       )}
     </div>

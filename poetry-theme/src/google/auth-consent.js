@@ -23,29 +23,28 @@ const OAUTH_ERROR_MESSAGES = {
 // exchange effect runs, so every later read must use this snapshot.
 const INITIAL_URL = typeof window !== 'undefined' ? window.location.href : ''
 
-function callbackUrl() {
+function resolveCode() {
   if (typeof window === 'undefined') return null
+  // Read from the snapshot first (captured before React Router mount).
   try {
-    return new URL(INITIAL_URL || window.location.href)
-  } catch {
-    return null
-  }
+    const fromSnapshot = new URL(INITIAL_URL).searchParams.get('code')
+    if (fromSnapshot) return fromSnapshot
+  } catch {}
+  // Fallback: read the live URL (works when INITIAL_URL is empty or stale).
+  try {
+    return new URL(window.location.href).searchParams.get('code')
+  } catch { return null }
 }
 
 function hashParams() {
-  const raw = callbackUrl()?.hash || window.location.hash || ''
+  const raw = INITIAL_URL ? (new URL(INITIAL_URL).hash || '') : (window.location.hash || '')
   return new URLSearchParams(raw.startsWith('#') ? raw.slice(1) : raw)
 }
 
-// --- PKCE flow: Google returns ?code=<single-use> in the query string ---
-
-function pkceVerifierPending() {
-  try {
-    if (typeof localStorage === 'undefined' || !supabaseUrlRef) return false
-    return !!localStorage.getItem(`sb-${supabaseUrlRef}-auth-token-code-verifier`)
-  } catch {
-    return false
-  }
+function hasPkceVerifier() {
+  if (typeof localStorage === 'undefined' || !supabaseUrlRef) return false
+  const key = `sb-${supabaseUrlRef}-auth-token-code-verifier`
+  try { return !!localStorage.getItem(key) } catch { return false }
 }
 
 function stripQueryParam(name) {
@@ -58,10 +57,16 @@ function stripQueryParam(name) {
 
 async function completePkceSignIn() {
   if (typeof window === 'undefined') return null
-  const code = callbackUrl()?.searchParams.get('code') ?? null
-  // Only attempt an exchange when we actually started a PKCE flow,
-  // so random ?code= links never trigger failed logins.
-  if (!code || !pkceVerifierPending()) return null
+  const code = resolveCode()
+  const hasVerifier = hasPkceVerifier()
+  console.log('[GOOGLE] PKCE check:', { code: code ? code.slice(0, 8) + '…' : null, hasVerifier })
+  if (!code) return null
+  // When a ?code= is present but no verifier is stored, the code is
+  // either stale (page reload) or from a different flow — skip it.
+  if (!hasVerifier) {
+    console.log('[GOOGLE] code present but no PKCE verifier in localStorage — skipping')
+    return null
+  }
 
   console.log('[GOOGLE] exchanging PKCE code for a session')
   const { data, error } = await supabase.auth.exchangeCodeForSession(code)
@@ -94,11 +99,15 @@ export async function signInWithGoogle({ redirectTo } = {}) {
     console.log('[GOOGLE] missing client id')
     return { ok: false, error: 'Google sign-in is not configured' }
   }
-  console.log('[GOOGLE] starting PKCE OAuth — client id:', GOOGLE_CLIENT_ID.slice(0, 12) + '...')
+  // Use the current path so the redirect lands in the SPA (not a bare
+  // "/" that React Router immediately rewrites).
+  const origin = typeof window !== 'undefined' ? window.location.origin : ''
+  const target = redirectTo || `${origin}/`
+  console.log('[GOOGLE] starting PKCE OAuth — client id:', GOOGLE_CLIENT_ID.slice(0, 12) + '…  redirectTo:', target)
   const { error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: redirectTo || (typeof window !== 'undefined' ? window.location.origin : undefined),
+      redirectTo: target,
       queryParams: { prompt: 'select_account' },
     },
   })
@@ -111,6 +120,8 @@ export async function signInWithGoogle({ redirectTo } = {}) {
 }
 
 export async function completeGoogleSignIn() {
+  console.log('[GOOGLE] completeGoogleSignIn — INITIAL_URL:', INITIAL_URL?.slice(0, 120))
+  console.log('[GOOGLE] live URL:', window.location.href?.slice(0, 120))
   const pkce = await completePkceSignIn()
   if (pkce) return pkce
   if (!isGoogleRedirectPending()) return { ok: false, ignored: true }
@@ -142,6 +153,6 @@ export async function completeGoogleSignIn() {
   }
 
   const identity = data.user?.app_metadata?.provider === 'google'
-  console.log('[GOOGLE] signed in via Google — new account:', identity && data.user?.created_at === data.user?.last_sign_in_at)
+  console.log('[GOOGLE] signed in via Google (implicit) — new account:', identity && data.user?.created_at === data.user?.last_sign_in_at)
   return { ok: true, user: data.user ?? null }
 }

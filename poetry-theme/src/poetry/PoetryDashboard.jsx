@@ -529,27 +529,98 @@ export default function PoetryDashboard() {
         />
       )}
 
-      {/* ─── Slide-down panel ─── */}
-      <div
-        className="fixed top-0 left-0 right-0 z-40"
-        style={{
-          transform: slideOpen ? 'translateY(0)' : 'translateY(-100%)',
-          opacity: slideOpen ? 1 : 0,
-          pointerEvents: slideOpen ? 'auto' : 'none',
-          transition: 'transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.35s ease-in-out',
-        }}
-      >
-        <div onClick={() => setSlideOpen(false)} style={{ backgroundColor: 'rgba(0,0,0,0.2)' }}>
-          <div onClick={(e) => e.stopPropagation()}
-            className="overflow-y-auto mx-auto"
+      {/* ─── Auth / Profile panel ─── */}
+      {isMobile ? (
+        /* ── Mobile: slide-down from top ── */
+        <div
+          className="fixed top-0 left-0 right-0 z-40"
+          style={{
+            transform: slideOpen ? 'translateY(0)' : 'translateY(-100%)',
+            opacity: slideOpen ? 1 : 0,
+            pointerEvents: slideOpen ? 'auto' : 'none',
+            transition: 'transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.35s ease-in-out',
+          }}
+        >
+          <div onClick={() => setSlideOpen(false)} style={{ backgroundColor: 'rgba(0,0,0,0.2)' }}>
+            <div onClick={(e) => e.stopPropagation()}
+              className="overflow-y-auto mx-auto"
+              style={{
+                backgroundColor: 'var(--tp-header-bg)',
+                color: 'var(--tp-header-text)',
+                maxHeight: '90vh',
+                maxWidth: '28rem',
+                borderRadius: '0 0 1.25rem 1.25rem',
+                boxShadow: '0 8px 32px rgba(0,0,0,0.15)',
+              }}
+            >
+              {!user && (
+                <AuthForms
+                  authMode={authMode} signupStep={signupStep}
+                  aUsername={aUsername} aPassword={aPassword} aRetype={aRetype}
+                  aName={aName} aQuestion={aQuestion} aAnswer={aAnswer}
+                  aNewPass={aNewPass} aError={aError} aBusy={aBusy}
+                  aSuggestions={aSuggestions} aSecurityQ={aSecurityQ}
+                  aCountry={aCountry} aState={aState} aZip={aZip}
+                  setAUsername={setAUsername} setAPassword={setAPassword}
+                  setARetype={setARetype} setAName={setAName}
+                  setAQuestion={setAQuestion} setAAnswer={setAAnswer}
+                  setANewPass={setANewPass} setAError={setAError}
+                  setABusy={setABusy} setASuggestions={setASuggestions}
+                  setSignupStep={setSignupStep} setAuthMode={setAuthMode}
+                  setACountry={setACountry} setAState={setAState} setAZip={setAZip}
+                  handleLogin={handleLogin} handleSignupNext0={handleSignupNext0}
+                  handleSignup={handleSignup}
+                  handleForgotLookup={handleForgotLookup}
+                  handleForgotReset={handleForgotReset}
+                  openSignup={openSignup} openLogin={openLogin} openForgot={openForgot}
+                  closeSlide={closeSlide}
+                />
+              )}
+              {user && authMode === 'google_setup' && (
+                <GoogleSetup user={user} onClose={closeSlide} />
+              )}
+              {user && authMode !== 'google_setup' && (
+                <CompactProfile
+                  user={user} myPoems={myPoems} favorites={favorites}
+                  myPoemsCachedOnly={myPoemsCachedOnly}
+                  onNavigate={handleNavigate} onClose={closeSlide}
+                  onLogout={logout}
+                  shelfCount={shelf.length}
+                  inboxUnread={inboxUnread}
+                  unreadCount={unreadCount}
+                  streak={reading?.streakCurrent || 0}
+                />
+              )}
+            </div>
+          </div>
+        </div>
+      ) : (
+        /* ── Desktop: centered popup modal ── */
+        <div
+          className="fixed inset-0 z-40 flex items-center justify-center"
+          style={{
+            opacity: slideOpen ? 1 : 0,
+            pointerEvents: slideOpen ? 'auto' : 'none',
+            transition: 'opacity 0.25s ease-in-out',
+          }}
+        >
+          <div onClick={() => setSlideOpen(false)}
+            className="absolute inset-0"
+            style={{ backgroundColor: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)' }} />
+          <div
+            className="relative overflow-y-auto"
             style={{
               backgroundColor: 'var(--tp-header-bg)',
               color: 'var(--tp-header-text)',
-              maxHeight: '90vh',
+              maxHeight: '85vh',
+              width: '100%',
               maxWidth: '28rem',
-              borderRadius: '0 0 1.25rem 1.25rem',
-              boxShadow: '0 8px 32px rgba(0,0,0,0.15)',
+              borderRadius: '1.25rem',
+              boxShadow: '0 16px 48px rgba(0,0,0,0.25)',
+              transform: slideOpen ? 'scale(1)' : 'scale(0.95)',
+              transition: 'transform 0.25s cubic-bezier(0.22, 1, 0.36, 1)',
             }}
+            onClick={(e) => e.stopPropagation()}
           >
             {!user && (
               <AuthForms
@@ -574,11 +645,9 @@ export default function PoetryDashboard() {
                 closeSlide={closeSlide}
               />
             )}
-
             {user && authMode === 'google_setup' && (
               <GoogleSetup user={user} onClose={closeSlide} />
             )}
-
             {user && authMode !== 'google_setup' && (
               <CompactProfile
                 user={user} myPoems={myPoems} favorites={favorites}
@@ -593,7 +662,7 @@ export default function PoetryDashboard() {
             )}
           </div>
         </div>
-      </div>
+      )}
 
       <MenuModal
         open={menuOpen && !chatContact}

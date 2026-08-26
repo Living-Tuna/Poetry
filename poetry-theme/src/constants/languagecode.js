@@ -59,6 +59,7 @@ export const EN = {
   'common.share': 'Share',
   'common.byAuthor': 'by {author}',
   'common.update': 'Update',
+  'common.skip': 'Skip for now',
   'common.cachedOffline': 'Cached data — offline',
   'common.syncedServer': 'Synced with server',
 
@@ -583,6 +584,7 @@ export const LANGUAGE_PACKAGES = {
   'common.share': 'പങ്കിടുക',
   'common.byAuthor': 'എഴുതിയത് {author}',
   'common.update': 'അപ്ഡേറ്റ്',
+  'common.skip': 'ഇപ്പോൾ ഒഴിവാക്കുക',
   'common.cachedOffline': 'കാഷെ ചെയ്ത ഡാറ്റ — ഓഫ്‌ലൈൻ',
   'common.syncedServer': 'സെർവറുമായി സമന്വയിപ്പിച്ചു',
     'nav.home': 'ഹോം',
@@ -1041,6 +1043,7 @@ export const LANGUAGE_PACKAGES = {
   'common.share': 'शेयर करें',
   'common.byAuthor': 'द्वारा {author}',
   'common.update': 'अपडेट करें',
+  'common.skip': 'अभी छोड़ें',
   'common.cachedOffline': 'कैश किया गया डेटा — ऑफ़लाइन',
   'common.syncedServer': 'सर्वर से सिंक किया गया',
     'nav.home': 'होम',

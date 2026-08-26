@@ -34,11 +34,20 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     // Finish a Google consent redirect first (tokens arrive in the URL hash
     // and detectSessionInUrl is off); setSession below fires SIGNED_IN.
-    completeGoogleSignIn().finally(() => {
+    completeGoogleSignIn().then((result) => {
+      if (result?.ok && result.user) {
+        setUser(sessionToUser(result.user))
+      }
+      // Always fetch the canonical session after the exchange.
       supabase.auth.getSession().then(({ data: { session } }) => {
         if (session?.user) setUser(sessionToUser(session.user))
         setLoading(false)
-      })
+      }).catch(() => { setLoading(false) })
+    }).catch(() => {
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session?.user) setUser(sessionToUser(session.user))
+        setLoading(false)
+      }).catch(() => { setLoading(false) })
     })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
