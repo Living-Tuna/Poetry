@@ -162,6 +162,7 @@ export const EN = {
   // post-Google sign-in profile completion
   'auth.googleSetupTitle': 'Complete your profile',
   'auth.signedInAs': 'Signed in as {email}',
+  'auth.googleFailed': 'Google sign-in failed. Please try again.',
   'auth.locationRequiredShort': 'Your location is required — pick your country and enter your ZIP / PIN code.',
   'auth.finishSetup': 'Finish Setup',
   'auth.finishing': 'Finishing...',

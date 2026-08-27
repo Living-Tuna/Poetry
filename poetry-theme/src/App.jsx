@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import PoetryDashboard from './poetry/PoetryDashboard'
+import GoogleCallback from './auth/GoogleCallback'
 
 const DEFAULT_LANG = 'en'
 
@@ -15,6 +16,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="/" element={<LangRedirect keepQuery />} />
+      <Route path="/auth/google-callback" element={<GoogleCallback />} />
       <Route path="/poem/:id/:slug" element={<PoetryDashboard />} />
       <Route path="/poem/:id" element={<PoetryDashboard />} />
       <Route path="/:view" element={<PoetryDashboard />} />

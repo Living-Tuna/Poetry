@@ -1,5 +1,18 @@
 const logs = [
   {
+    versionCode: '1.5.4',
+    date: 'August 2026',
+    features: [
+      'Sign-in and sign-up panel now opens as a centred popup on desktop and stays as a slide-down on mobile',
+      'Google sign-in goes directly to Google — the Supabase project URL no longer flashes during the redirect',
+      'After signing in with Google, you are guided through choosing a username, your display name, and your location (auto-detected, entered manually, or skipped for now)',
+      'Security question is no longer required for Google accounts — only username sign-ups ask for one',
+    ],
+    bugs: [
+      'Google sign-in sometimes bounced back to the home screen without completing the session — the callback now exchanges the code through a secure Edge Function and sets the session reliably',
+    ],
+  },
+  {
     versionCode: '1.5.0',
     date: 'August 2026',
     features: [
