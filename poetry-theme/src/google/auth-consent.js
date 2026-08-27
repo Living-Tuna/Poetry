@@ -1,7 +1,7 @@
 import { GOOGLE_CLIENT_ID } from './clientId'
 
 const GOOGLE_REDIRECT_URI = typeof window !== 'undefined'
-  ? `${window.location.origin}/auth/google-callback`
+  ? `${window.location.origin}/auth/callback`
   : ''
 
 export async function signInWithGoogle() {

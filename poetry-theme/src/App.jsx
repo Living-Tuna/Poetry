@@ -16,7 +16,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="/" element={<LangRedirect keepQuery />} />
-      <Route path="/auth/google-callback" element={<GoogleCallback />} />
+      <Route path="/auth/callback" element={<GoogleCallback />} />
       <Route path="/poem/:id/:slug" element={<PoetryDashboard />} />
       <Route path="/poem/:id" element={<PoetryDashboard />} />
       <Route path="/:view" element={<PoetryDashboard />} />

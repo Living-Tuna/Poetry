@@ -142,6 +142,14 @@ export default function MenuModal({ open, onClose, onSettings, onWriteNow, onFav
               <path d="M18 6L6 18M6 6l12 12" />
             </svg>
           } label={t('common.close')} onClick={onClose} subtle />
+
+          <div className="pt-3 pb-1 text-center">
+            <a href="https://delvare.in" target="_blank" rel="noopener noreferrer"
+              className="text-[11px] font-medium transition-opacity hover:opacity-80"
+              style={{ color: 'var(--tp-text-secondary)' }}>
+              A Delvare Enterprise
+            </a>
+          </div>
         </div>
       </div>
     </div>
