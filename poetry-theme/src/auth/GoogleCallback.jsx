@@ -80,13 +80,13 @@ export default function GoogleCallback() {
           return
         }
 
-        const { token, email } = fnRes.data
+        const { token_hash, email } = fnRes.data
 
-        // Exchange the verification token for a real Supabase session
+        // Exchange the verification token for a real Supabase session.
+        // Magic-link hashed tokens use verifyOtp({ type: 'magiclink', token_hash }).
         const { data: otpData, error: otpError } = await supabase.auth.verifyOtp({
-          email,
-          token,
-          type: 'email',
+          type: 'magiclink',
+          token_hash,
         })
 
         if (otpError) {

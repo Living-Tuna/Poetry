@@ -3,7 +3,7 @@ const logs = [
     versionCode: '1.5.5',
     date: 'August 2026',
     bugs: [
-      'Google sign-in tribulations fixed — first the callback router was blocking the browser\'s security pre-flight check, then the edge function surfaced Google\'s real error instead of a vague code, and the single-use sign-in code is now exchanged exactly once so Google never rejects it as already used',
+      'Google sign-in now completes reliably — three issues that blocked it one after another are fixed: the security pre-flight check the sign-in callback router was rejecting, the return address pointing at the wrong "www" domain so Google rejected the one-time code, and finally the sign-in session being assembled with the wrong field so the exchange never finished',
     ],
   },
   {
