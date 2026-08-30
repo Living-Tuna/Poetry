@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '../supabase/client'
 import { useLanguage } from '../language/LanguageProvider'
@@ -8,6 +8,9 @@ export default function GoogleCallback() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const [error, setError] = useState('')
+  // Single-use Google auth codes must be exchanged exactly once — a second
+  // attempt gets `invalid_grant` from Google and breaks sign-in.
+  const exchangedRef = useRef(false)
 
   useEffect(() => {
     const code = searchParams.get('code')
@@ -21,6 +24,17 @@ export default function GoogleCallback() {
     if (!code) {
       setError(t('auth.googleFailed'))
       return
+    }
+
+    if (exchangedRef.current) return
+    exchangedRef.current = true
+
+    // Remove the single-use code from the address bar so a refresh or
+    // re-render can't try to redeem it a second time.
+    try {
+      window.history.replaceState({}, '', window.location.pathname)
+    } catch {
+      // ignore — stripping the query is best-effort
     }
 
     let cancelled = false
@@ -40,18 +54,28 @@ export default function GoogleCallback() {
 
         const fnError = fnRes.error
         if (fnError) {
+          // FunctionsHttpError.context is a Response; parse its JSON body for the
+          // real server message (e.g. "Google token exchange failed").
+          let serverMsg = ''
+          try {
+            if (fnError.context && typeof fnError.context.json === 'function') {
+              const ctx = await fnError.context.json()
+              serverMsg = ctx?.detail || ctx?.error || ctx?.message || ctx?.msg || ''
+            } else if (fnError.context && typeof fnError.context.error === 'string') {
+              serverMsg = fnError.context.error
+            }
+          } catch {
+            serverMsg = ''
+          }
           // Log the full error object (type, message, status, context) for debugging.
           console.error('[GoogleCallback] edge function invoke FAILED', {
             name: fnError.name,
             message: fnError.message,
             status: fnError.status,
             context: fnError.context,
+            serverMsg,
           })
-          let detail = fnError.message || t('auth.googleFailed')
-          // If the function returned a 2xx HTTP error body, prefer its message.
-          if (fnError.context && typeof fnError.context.error === 'string') {
-            detail = fnError.context.error
-          }
+          const detail = serverMsg || fnError.message || t('auth.googleFailed')
           if (!cancelled) setError(detail || t('auth.googleFailed'))
           return
         }
