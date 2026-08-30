@@ -3,7 +3,7 @@ const logs = [
     versionCode: '1.5.5',
     date: 'August 2026',
     bugs: [
-      'Google sign-in no longer fails with "failed to send a request to the edge function" — the secure callback function is now reachable without a session, so exchanging the Google code signs you in reliably on every device',
+      'Google sign-in no longer fails with "failed to send a request to the edge function" — the sign-in callback router was blocking the browser\'s security pre-flight check, so the edge function now answers it correctly and exchanging the Google code signs you in reliably',
     ],
   },
   {

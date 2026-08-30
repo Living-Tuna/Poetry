@@ -28,13 +28,30 @@ export default function GoogleCallback() {
     async function exchange() {
       try {
         // Send code to our Edge Function (keeps GOOGLE_CLIENT_SECRET off the client)
+        console.log('[GoogleCallback] invoking google-auth edge function')
         const fnRes = await supabase.functions.invoke('google-auth', {
           body: { code },
         })
+        console.log('[GoogleCallback] google-auth response:', {
+          hasData: !!fnRes.data,
+          hasError: !!fnRes.error,
+          data: fnRes.data ? { email: fnRes.data.email, hasToken: !!fnRes.data.token, isNew: fnRes.data.is_new } : null,
+        })
 
-        if (fnRes.error) {
-          const detail = fnRes.error?.context?.error || fnRes.error.message
-          console.log('[GoogleCallback] edge function error:', detail)
+        const fnError = fnRes.error
+        if (fnError) {
+          // Log the full error object (type, message, status, context) for debugging.
+          console.error('[GoogleCallback] edge function invoke FAILED', {
+            name: fnError.name,
+            message: fnError.message,
+            status: fnError.status,
+            context: fnError.context,
+          })
+          let detail = fnError.message || t('auth.googleFailed')
+          // If the function returned a 2xx HTTP error body, prefer its message.
+          if (fnError.context && typeof fnError.context.error === 'string') {
+            detail = fnError.context.error
+          }
           if (!cancelled) setError(detail || t('auth.googleFailed'))
           return
         }
@@ -49,7 +66,12 @@ export default function GoogleCallback() {
         })
 
         if (otpError) {
-          console.log('[GoogleCallback] verifyOtp failed:', otpError.message)
+          console.error('[GoogleCallback] verifyOtp failed:', {
+            name: otpError.name,
+            message: otpError.message,
+            status: otpError.status,
+            code: otpError.code,
+          })
           if (!cancelled) setError(otpError.message || t('auth.googleFailed'))
           return
         }
