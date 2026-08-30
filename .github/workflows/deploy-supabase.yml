@@ -24,10 +24,15 @@ jobs:
 
       - name: Deploy Edge Functions
         run: |
+          printf 'GOOGLE_CLIENT_ID=%s\n' "${{ secrets.GOOGLE_CLIENT_ID }}" > .env.google
+          printf 'GOOGLE_CLIENT_SECRET=%s\n' "${{ secrets.GOOGLE_CLIENT_SECRET }}" >> .env.google
+          printf 'GOOGLE_REDIRECT_URI=%s\n' "${{ secrets.GOOGLE_REDIRECT_URI }}" >> .env.google
+          supabase functions deploy google-auth --project-ref "${{ secrets.SUPABASE_REF }}" --no-verify-jwt --env-file .env.google
           supabase functions deploy check-username --project-ref "${{ secrets.SUPABASE_REF }}"
           supabase functions deploy forgot-password --project-ref "${{ secrets.SUPABASE_REF }}"
           supabase functions deploy newsletter-subscribe --project-ref "${{ secrets.SUPABASE_REF }}"
           supabase functions deploy newsletter-daily --project-ref "${{ secrets.SUPABASE_REF }}"
+          rm -f .env.google
 
       - name: Push database migrations
         run: supabase db push --linked
