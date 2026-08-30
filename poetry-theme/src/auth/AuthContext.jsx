@@ -13,6 +13,7 @@ function sessionToUser(sessionUser) {
   return {
     id: sessionUser.id,
     username: meta.username || '',
+    needsSetup: !!meta.needs_setup,
     name: meta.name || meta.display_name || meta.username || 'User',
     email: sessionUser.email || sessionUser.user_metadata?.email || '',
     provider: sessionUser.app_metadata?.provider || 'email',

@@ -208,11 +208,12 @@ export default function PoetryDashboard() {
   function openLogin() { setAuthMode('login'); setAError('') }
   function openForgot() { setAuthMode('forgot'); setAError('') }
 
-  // Google sign-ins create accounts without a username — prompt the user
-  // to finish setting up their profile once, right after they land back.
+  // Google sign-ins create accounts with a temporary placeholder username —
+  // prompt the user to finish setting up their profile (real username, name,
+  // location) once, right after they land back.
   useEffect(() => {
     if (authLoading) return
-    if (user && !user.username) {
+    if (user && user.needsSetup) {
       setAuthMode('google_setup')
       setSlideOpen(true)
     }

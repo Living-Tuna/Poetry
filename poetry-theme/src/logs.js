@@ -3,7 +3,7 @@ const logs = [
     versionCode: '1.5.5',
     date: 'August 2026',
     bugs: [
-      'Google sign-in now completes reliably — three issues that blocked it one after another are fixed: the security pre-flight check the sign-in callback router was rejecting, the return address pointing at the wrong "www" domain so Google rejected the one-time code, and finally the sign-in session being assembled with the wrong field so the exchange never finished',
+      'Google sign-in now completes reliably — four issues that blocked it one after another are fixed: the security pre-flight check the sign-in callback router was rejecting, the return address pointing at the wrong "www" domain so Google rejected the one-time code, the sign-in session being assembled with the wrong field so the exchange never finished, and new Google accounts failing to be created because a placeholder username was required but never supplied',
     ],
   },
   {

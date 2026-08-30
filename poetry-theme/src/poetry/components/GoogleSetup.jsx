@@ -79,9 +79,21 @@ export default function GoogleSetup({ user, onClose }) {
           name: name.trim(),
           display_name: name.trim(),
           country, state, zip,
+          needs_setup: false,
         },
       })
       if (updateError) throw updateError
+
+      // Keep the profiles row in sync — the trigger stored a temporary placeholder
+      // username there at creation; replace it with the user's real username.
+      if (user?.id) {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({ username: username.trim().toLowerCase(), display_name: name.trim() })
+          .eq('id', user.id)
+        if (profileError) console.log('[GoogleSetup] profiles update failed:', profileError.message)
+      }
+
       try {
         if (country) localStorage.setItem('poetry_country', country)
         if (state) localStorage.setItem('poetry_state', state)
